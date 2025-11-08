@@ -27,6 +27,11 @@
   justify-content: space-between;
   background-color: var(--foreground);
   padding: 120px 60px;
+  position: relative;
+  background-image: url('/branding/logo2.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
 }
 
 .intro {
