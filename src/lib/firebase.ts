@@ -2,6 +2,8 @@
 // Reads config from public env vars (NEXT_PUBLIC_*) so it can run on the client.
 
 import { initializeApp, getApps, type FirebaseApp } from 'firebase/app';
+// Analytics is optional; only load in browser if measurement ID present
+// import { getAnalytics } from 'firebase/analytics';
 import { getFirestore, type Firestore, doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { getStorage, type FirebaseStorage } from 'firebase/storage';
 import { getAuth, type Auth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, type User } from 'firebase/auth';
@@ -10,9 +12,11 @@ let app: FirebaseApp | undefined;
 let db: Firestore | undefined;
 let storage: FirebaseStorage | undefined;
 let auth: Auth | undefined;
+// let analytics: Analytics | undefined; // Uncomment when enabling analytics
 
 export function getFirebaseApp(): FirebaseApp | undefined {
-  if (typeof window === 'undefined') return undefined; // client-only init
+  // Allow SSR modules to access Firestore (Firebase supports limited server usage)
+  // Only guard out analytics and auth-specific browser features elsewhere.
   if (!app) {
     const config = {
       apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -21,6 +25,7 @@ export function getFirebaseApp(): FirebaseApp | undefined {
       storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
       messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
       appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+      measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
     } as const;
 
     // Minimal validation
@@ -29,6 +34,9 @@ export function getFirebaseApp(): FirebaseApp | undefined {
     }
 
     app = getApps().length ? getApps()[0]! : initializeApp(config);
+    // if (typeof window !== 'undefined' && config.measurementId) {
+    //   analytics = getAnalytics(app);
+    // }
   }
   return app;
 }
@@ -99,4 +107,9 @@ export async function ensureUserDocument(u: User): Promise<void> {
     // Optionally update last seen
     await setDoc(ref, { updatedAt: serverTimestamp() }, { merge: true });
   }
+}
+
+// Convenience re-export to check initialization status in UI components
+export function isFirebaseReady(): boolean {
+  return !!getFirebaseApp();
 }

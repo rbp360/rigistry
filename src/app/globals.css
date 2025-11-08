@@ -1,6 +1,8 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --font-tungstern: 'Tungstern Semibold', Arial, Helvetica, sans-serif;
+  --font-fibre: 'Fibre Vintage', serif;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -53,6 +55,32 @@ body {
 a {
   color: inherit;
   text-decoration: none;
+}
+
+/* Header & footer styling with Tungstern font */
+.site-header, .site-footer {
+  font-family: var(--font-tungstern);
+  letter-spacing: 0.1em; /* Increased tracking for Tungsten */
+}
+
+.site-header nav a, .site-footer nav a {
+  font-weight: 600;
+  font-size: 0.9rem;
+  letter-spacing: 0.12em; /* Slightly more spacing for links */
+}
+
+.site-footer {
+  border-top: 1px solid #222;
+  padding: 24px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #111;
+  color: #eee;
+}
+
+.site-footer small {
+  opacity: 0.7;
 }
 
 @media (prefers-color-scheme: dark) {

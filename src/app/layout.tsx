@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Link from "next/link";
+import AuthButtons from "@/components/AuthButtons";
 import { AuthProvider } from "@/contexts/AuthContext";
 
 const geistSans = Geist({
@@ -28,19 +29,28 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
         <AuthProvider>
-          <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', borderBottom: '1px solid #e5e7eb' }}>
+          <header className="site-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', borderBottom: '1px solid #e5e7eb', background: '#181818', color: '#f5f5f5' }}>
             <nav style={{ display: 'flex', gap: 12 }}>
               <Link href="/">Home</Link>
               <Link href="/about">About</Link>
               <Link href="/upload">Upload</Link>
               <Link href="/rig-builder">Rig Builder</Link>
             </nav>
-            <div>
-              {/* Auth buttons */}
-              <Link href="/account" style={{ marginRight: 12 }}>Account</Link>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <Link href="/account" style={{ marginRight: 4 }}>Account</Link>
+              <AuthButtons />
             </div>
           </header>
           {children}
+          <footer className="site-footer">
+            <nav style={{ display: 'flex', gap: 16 }}>
+              <Link href="/">Home</Link>
+              <Link href="/about">About</Link>
+              <Link href="/rig-builder">Rig Builder</Link>
+              <Link href="/upload">Upload</Link>
+            </nav>
+            <small>© {new Date().getFullYear()} Rigistry. All rights reserved.</small>
+          </footer>
         </AuthProvider>
       </body>
     </html>
