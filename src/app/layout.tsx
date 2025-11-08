@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import Link from "next/link";
+import { AuthProvider } from "@/contexts/AuthContext";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -25,7 +27,21 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
-        {children}
+        <AuthProvider>
+          <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', borderBottom: '1px solid #e5e7eb' }}>
+            <nav style={{ display: 'flex', gap: 12 }}>
+              <Link href="/">Home</Link>
+              <Link href="/about">About</Link>
+              <Link href="/upload">Upload</Link>
+              <Link href="/rig-builder">Rig Builder</Link>
+            </nav>
+            <div>
+              {/* Auth buttons */}
+              <Link href="/account" style={{ marginRight: 12 }}>Account</Link>
+            </div>
+          </header>
+          {children}
+        </AuthProvider>
       </body>
     </html>
   );
