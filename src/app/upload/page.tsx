@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import { getBucket } from '@/lib/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import CloudinaryUploader from '@/components/CloudinaryUploader';
 
 export default function UploadPage() {
   const storage = useMemo(() => getBucket(), []);
@@ -34,7 +35,7 @@ export default function UploadPage() {
   return (
     <main style={{ padding: 24 }}>
       <h1>Upload</h1>
-      <p>Upload a file to Firebase Storage.</p>
+  <p>Upload a file to Firebase Storage or Cloudinary.</p>
 
       {!ready && (
         <p style={{ color: 'crimson' }}>
@@ -42,14 +43,20 @@ export default function UploadPage() {
         </p>
       )}
 
-      <input type="file" onChange={onFileChange} disabled={!ready} />
+  <h3>Firebase Storage</h3>
+  <input type="file" onChange={onFileChange} disabled={!ready} />
 
       {url && (
         <p>
-          Uploaded: <a href={url} target="_blank" rel="noreferrer">{url}</a>
+          Uploaded (Firebase): <a href={url} target="_blank" rel="noreferrer">{url}</a>
         </p>
       )}
       {error && <p style={{ color: 'crimson' }}>{error}</p>}
+
+      <div style={{ marginTop: 32 }}>
+        <h3>Cloudinary</h3>
+        <CloudinaryUploader onUploaded={(r) => console.log('Cloudinary uploaded', r)} />
+      </div>
     </main>
   );
 }
