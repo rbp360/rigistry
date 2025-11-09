@@ -23,6 +23,7 @@ export interface GearDoc {
   // Optional deeper metadata for search/filtering (extensible)
   specs?: Record<string, string | number | boolean>;
   catalogSource?: CatalogSourceMeta;
+  archived?: boolean; // soft delete / hide from active lists
   createdAt?: FirebaseFirestoreTimestamp;
   updatedAt?: FirebaseFirestoreTimestamp;
 }

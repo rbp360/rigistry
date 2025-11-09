@@ -9,13 +9,18 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: 'res.cloudinary.com',
       },
+      {
+        protocol: 'https',
+        hostname: 'lh3.googleusercontent.com',
+      },
     ],
   },
   experimental: {
     webpackBuildWorker: true,
     webpackMemoryOptimizations: true,
     optimizeCss: true,
-    nextScriptWorkers: true,
+    // Removed nextScriptWorkers: true because Partytown is not installed.
+    // Re-add this flag and run `npm i -D @builder.io/partytown` if you want to offload third-party scripts.
   },
 };
 

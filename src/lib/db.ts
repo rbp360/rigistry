@@ -19,7 +19,7 @@ import type { GearDoc, RigDoc, RigNodeDoc } from '@/types/schema';
 
 const gearConverter: FirestoreDataConverter<GearDoc> = {
   toFirestore(d: GearDoc): DocumentData {
-    const { ownerId, kind, brand, model, serialNumber, notes, imageUrl } = d;
+    const { ownerId, kind, brand, model, serialNumber, notes, imageUrl, specs, catalogSource, archived } = d;
     return {
       ownerId,
       kind,
@@ -28,6 +28,9 @@ const gearConverter: FirestoreDataConverter<GearDoc> = {
       serialNumber: serialNumber ?? null,
       notes: notes ?? null,
       imageUrl: imageUrl ?? null,
+      specs: specs ?? null,
+      catalogSource: catalogSource ?? null,
+      archived: archived ?? false,
     } as DocumentData;
   },
   fromFirestore(snap) {
@@ -41,6 +44,9 @@ const gearConverter: FirestoreDataConverter<GearDoc> = {
       serialNumber: d.serialNumber ?? undefined,
       notes: d.notes ?? undefined,
       imageUrl: d.imageUrl ?? undefined,
+      specs: d.specs ?? undefined,
+      catalogSource: d.catalogSource ?? undefined,
+      archived: d.archived ?? false,
       createdAt: (d.createdAt as Timestamp) ?? null,
       updatedAt: (d.updatedAt as Timestamp) ?? null,
     } satisfies GearDoc;
@@ -142,6 +148,38 @@ export async function listGearByOwner(ownerId: string): Promise<GearDoc[]> {
   const q: Query<GearDoc> = query(gearCol(db), where('ownerId', '==', ownerId));
   const snaps = await getDocs(q);
   return snaps.docs.map((d) => d.data());
+}
+
+export async function createGearItem(partial: Omit<GearDoc, 'id' | 'createdAt' | 'updatedAt'>): Promise<GearDoc | null> {
+  const db = getDb();
+  if (!db) return null;
+  const col = gearCol(db);
+  const ref = doc(col);
+  const now = serverTimestamp();
+  const data: GearDoc = {
+    ...partial,
+    id: ref.id,
+    archived: partial.archived ?? false,
+    createdAt: null,
+    updatedAt: null,
+  };
+  await setDoc(ref, { ...data, createdAt: now, updatedAt: now } as DocumentData);
+  const snap = await getDoc(ref);
+  return snap.exists() ? snap.data() : null;
+}
+
+export async function updateGearItem(id: string, updates: Partial<Omit<GearDoc, 'id' | 'createdAt' | 'updatedAt'>>): Promise<boolean> {
+  const db = getDb();
+  if (!db) return false;
+  const ref = doc(gearCol(db), id);
+  const existing = await getDoc(ref);
+  if (!existing.exists()) return false;
+  await setDoc(ref, { ...updates, updatedAt: serverTimestamp() }, { merge: true });
+  return true;
+}
+
+export async function archiveGearItem(id: string): Promise<boolean> {
+  return updateGearItem(id, { archived: true });
 }
 
 export async function loadRigNodes(rigId: string): Promise<RigNodeDoc[]> {

@@ -4,6 +4,7 @@ import "./globals.css";
 import Link from "next/link";
 import AuthButtons from "@/components/AuthButtons";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { ToastProvider } from '@/contexts/ToastContext';
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -29,6 +30,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
         <AuthProvider>
+          <ToastProvider>
           <header className="site-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', borderBottom: '1px solid #e5e7eb', background: '#181818', color: '#f5f5f5' }}>
             <nav style={{ display: 'flex', gap: 12 }}>
               <Link href="/">Home</Link>
@@ -51,6 +53,7 @@ export default function RootLayout({
             </nav>
             <small>© {new Date().getFullYear()} Rigistry. All rights reserved.</small>
           </footer>
+          </ToastProvider>
         </AuthProvider>
       </body>
     </html>

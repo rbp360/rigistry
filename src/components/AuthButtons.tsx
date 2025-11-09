@@ -3,9 +3,11 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { signInWithGoogle, signOutUser } from '@/lib/firebase';
 import Image from 'next/image';
+import { useToast } from '@/contexts/ToastContext';
 
 export default function AuthButtons() {
   const { user, loading } = useAuth();
+  const { addToast } = useToast();
 
   if (loading) {
     return (
@@ -19,7 +21,14 @@ export default function AuthButtons() {
   if (!user) {
     return (
       <button
-        onClick={() => void signInWithGoogle()}
+        onClick={async () => {
+          try {
+            await signInWithGoogle();
+          } catch (e) {
+            const msg = e instanceof Error ? e.message : 'Sign-in failed';
+            addToast({ type: 'error', title: 'Sign-in failed', message: msg });
+          }
+        }}
         style={{
           background: '#111',
           color: '#fff',
