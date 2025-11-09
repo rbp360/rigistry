@@ -31,25 +31,24 @@ export default function RootLayout({
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
         <AuthProvider>
           <ToastProvider>
-          <header className="site-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', borderBottom: '1px solid #e5e7eb', background: '#181818', color: '#f5f5f5' }}>
-            <nav style={{ display: 'flex', gap: 12 }}>
-              <Link href="/">Home</Link>
-              <Link href="/about">About</Link>
-              <Link href="/upload">Upload</Link>
-              <Link href="/rig-builder">Rig Builder</Link>
+          <header className="site-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 32px', borderBottom: '1px solid #e5e7eb', background: '#181818', color: '#f5f5f5' }}>
+            <nav style={{ display: 'flex', gap: 32, fontSize: 20, fontWeight: 600 }}>
+              <Link href="/rigistry">Rigistry</Link>
+              <Link href="/board-builder">Board builder</Link>
+              <Link href="/messageboard">Connect/messageboard</Link>
+              <Link href="/">About</Link>
             </nav>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <Link href="/account" style={{ marginRight: 4 }}>Account</Link>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
               <AuthButtons />
             </div>
           </header>
           {children}
           <footer className="site-footer">
-            <nav style={{ display: 'flex', gap: 16 }}>
-              <Link href="/">Home</Link>
-              <Link href="/about">About</Link>
-              <Link href="/rig-builder">Rig Builder</Link>
-              <Link href="/upload">Upload</Link>
+            <nav style={{ display: 'flex', gap: 32, fontSize: 16 }}>
+              <Link href="/rigistry">Rigistry</Link>
+              <Link href="/board-builder">Board builder</Link>
+              <Link href="/messageboard">Connect/messageboard</Link>
+              <Link href="/">About</Link>
             </nav>
             <small>© {new Date().getFullYear()} Rigistry. All rights reserved.</small>
           </footer>
