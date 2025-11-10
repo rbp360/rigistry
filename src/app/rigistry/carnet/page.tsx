@@ -36,14 +36,22 @@ export default function CarnetPage() {
       ) : (
         <form>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 18 }}>
-            {gear.map((g) => (
-              <label key={g.id} style={{ border: '1px solid #ddd', borderRadius: 8, padding: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <input type="checkbox" checked={!!selected[g.id]} onChange={() => toggleSelect(g.id)} />
-                <strong>{g.brand || 'Unknown'} {g.model || ''}</strong>
-                <span style={{ fontSize: 13, opacity: 0.7 }}>{g.kind}</span>
-                {g.imageUrl && <img src={g.imageUrl} alt={g.brand || 'Gear'} style={{ maxWidth: 120, borderRadius: 6 }} />}
-              </label>
-            ))}
+            {gear.map((g) => {
+              const id = g.id; // GearDoc.id is optional in type
+              if (!id) return null; // skip items lacking an id to avoid unsafe indexing
+              return (
+                <label key={id} style={{ border: '1px solid #ddd', borderRadius: 8, padding: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <input
+                    type="checkbox"
+                    checked={!!selected[id]}
+                    onChange={() => toggleSelect(id)}
+                  />
+                  <strong>{g.brand || 'Unknown'} {g.model || ''}</strong>
+                  <span style={{ fontSize: 13, opacity: 0.7 }}>{g.kind}</span>
+                  {g.imageUrl && <img src={g.imageUrl} alt={g.brand || 'Gear'} style={{ maxWidth: 120, borderRadius: 6 }} />}
+                </label>
+              );
+            })}
           </div>
           <button type="button" onClick={exportPDF} style={{ marginTop: 24, background: '#111', color: '#fff', padding: '10px 18px', borderRadius: 8, border: '1px solid #222', cursor: 'pointer' }}>
             Export selected as PDF
