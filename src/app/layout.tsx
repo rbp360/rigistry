@@ -40,6 +40,24 @@ export default function RootLayout({
               <Link href="/board-builder">Board builder</Link>
               <Link href="/messageboard">Connect/messageboard</Link>
               <Link href="/">About</Link>
+              {/* Primary CTA: Create a Carnet */}
+              <Link
+                href="/rigistry/carnet"
+                style={{
+                  padding: '6px 16px',
+                  background: '#2563eb',
+                  color: '#ffffff',
+                  borderRadius: 6,
+                  fontSize: 16,
+                  fontWeight: 600,
+                  alignSelf: 'center',
+                  lineHeight: '24px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
+                  textDecoration: 'none'
+                }}
+              >Create a Carnet</Link>
             </nav>
             <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
               <AuthButtons />
