@@ -4,9 +4,24 @@
 
 .roomsGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 2rem;
   margin-top: 2rem;
+  /* Default: single column for very small screens */
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 480px) {
+  .roomsGrid {
+    /* Two columns on small/medium devices */
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 900px) {
+  .roomsGrid {
+    /* Three columns max on larger screens */
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
 .roomCard {
@@ -14,20 +29,44 @@
   color: inherit;
 }
 
-.roomCard div {
-  background: #222;
-  border-radius: 1rem;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.12);
-  padding: 1.5rem;
+.cardInner {
   text-align: center;
+  color: #22c55e; /* Bright green to match active surrounds */
+}
+
+/* Thumbnail wrapper: minimal background just around the image */
+.roomThumb {
+  display: inline-block;
+  background: #222;
+  border-radius: 0.75rem;
+  padding: 8px; /* keep the box only slightly larger than the image */
+  box-shadow: 0 2px 12px rgba(0,0,0,0.12);
   transition: box-shadow 0.2s, opacity 0.2s;
 }
 
-.roomCard:hover div {
+/* Active (non-grey) rooms: add a bright green outline ring */
+.activeThumb {
+  box-shadow: 0 0 0 3px #22c55e, 0 2px 12px rgba(0,0,0,0.12);
+}
+
+.roomCard:hover .roomThumb {
   box-shadow: 0 4px 24px rgba(0,0,0,0.18);
 }
 
+/* Preserve the green outline on hover for active rooms */
+.roomCard:hover .activeThumb {
+  box-shadow: 0 0 0 3px #22c55e, 0 4px 24px rgba(0,0,0,0.18);
+}
+
+.cardInner h2 {
+  margin: 8px 0 4px;
+}
+
+.cardInner p {
+  margin: 0;
+}
+
 .grayed {
-  opacity: 0.5;
-  filter: grayscale(0.8);
+  opacity: 0.75; /* was 0.5: make less greyed out */
+  filter: grayscale(0.5); /* reduce grayscale so image/text are more visible */
 }

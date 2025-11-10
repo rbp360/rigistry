@@ -84,8 +84,12 @@ export default function RigistryPage() {
       <div className={styles.roomsGrid}>
         {rooms.map(room => (
           <Link key={room.key} href={`/rigistry/${room.key}`} className={styles.roomCard}>
-            <div className={gearCounts[room.key as RoomKey] === 0 ? styles.grayed : ''}>
-              <Image src={room.img} alt={room.name} width={160} height={160} />
+            <div className={styles.cardInner}>
+              <div
+                className={`${styles.roomThumb} ${gearCounts[room.key as RoomKey] > 0 ? styles.activeThumb : styles.grayed}`}
+              >
+                <Image src={room.img} alt={room.name} width={160} height={160} />
+              </div>
               <h2>{room.name}</h2>
               <p>{gearCounts[room.key as RoomKey] > 0 ? `${gearCounts[room.key as RoomKey]} item(s)` : 'Empty'}</p>
             </div>
