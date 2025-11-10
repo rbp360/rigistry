@@ -1,4 +1,5 @@
 import Image from 'next/image';
+import GuitarAmpGearList from './GearList';
 
 export default function GuitarAmpRoom() {
   return (
@@ -6,7 +7,7 @@ export default function GuitarAmpRoom() {
       <h1>Guitar/Amp Room</h1>
       <Image src="/branding/Guitar room.png" alt="Guitar/Amp Room" width={220} height={220} />
       <p>Add guitars, amps, pedals, and related gear here.</p>
-      {/* TODO: List gear in this room */}
+      <GuitarAmpGearList />
     </main>
   );
 }

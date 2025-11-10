@@ -23,6 +23,7 @@ export interface GearDoc {
   // Optional deeper metadata for search/filtering (extensible)
   specs?: Record<string, string | number | boolean>;
   catalogSource?: CatalogSourceMeta;
+  room?: string; // room assignment (e.g. 'guitar-amp', 'drum', etc.)
   archived?: boolean; // soft delete / hide from active lists
   createdAt?: FirebaseFirestoreTimestamp;
   updatedAt?: FirebaseFirestoreTimestamp;

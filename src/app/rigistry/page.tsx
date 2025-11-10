@@ -1,7 +1,10 @@
+"use client";
 import Image from 'next/image';
 import Link from 'next/link';
 import styles from './Rigistry.module.css';
-
+import { useAuth } from '@/contexts/AuthContext';
+import { useEffect, useState } from 'react';
+import { listGearByOwner } from '@/lib/db';
 
 const rooms = [
   {
@@ -39,19 +42,45 @@ const rooms = [
 type RoomKey = typeof rooms[number]["key"];
 
 export default function RigistryPage() {
-  // TODO: Replace with real gear count logic
-  const gearCounts: Record<RoomKey, number> = {
+  const { user } = useAuth();
+  const [gearCounts, setGearCounts] = useState<Record<RoomKey, number>>({
     'guitar-amp': 0,
     control: 0,
     drum: 0,
     vocal: 0,
     synthzone: 0,
     live: 0,
-  };
+  });
+
+  useEffect(() => {
+    if (!user) return;
+    (async () => {
+      const all = await listGearByOwner(user.uid);
+      const counts: Record<RoomKey, number> = {
+        'guitar-amp': 0,
+        control: 0,
+        drum: 0,
+        vocal: 0,
+        synthzone: 0,
+        live: 0,
+      };
+      for (const g of all) {
+        if (g.room && counts[g.room as RoomKey] !== undefined) {
+          counts[g.room as RoomKey]++;
+        }
+      }
+      setGearCounts(counts);
+    })();
+  }, [user]);
 
   return (
     <main className={styles.rigistryMain}>
-      <h1>Rigistry: Get Started</h1>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+        <h1>Rigistry: Get Started</h1>
+        <Link href="/rigistry/add" style={{ fontSize: 28, background: '#222', color: '#fff', borderRadius: '50%', width: 48, height: 48, display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.12)' }} title="Add Gear">
+          +
+        </Link>
+      </div>
       <div className={styles.roomsGrid}>
         {rooms.map(room => (
           <Link key={room.key} href={`/rigistry/${room.key}`} className={styles.roomCard}>
@@ -62,6 +91,11 @@ export default function RigistryPage() {
             </div>
           </Link>
         ))}
+      </div>
+      <div style={{ marginTop: 32, textAlign: 'center' }}>
+        <Link href="/rigistry/add" style={{ fontSize: 22, background: '#222', color: '#fff', borderRadius: 24, padding: '12px 28px', textDecoration: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.10)' }} title="Add Gear">
+          + Add Gear
+        </Link>
       </div>
     </main>
   );
