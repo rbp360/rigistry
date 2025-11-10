@@ -4,7 +4,7 @@
 
 import type { GearDoc, GearKind } from '@/types/schema';
 
-export type IngestionSource = 'equipboard' | 'reverb' | 'effectsdb';
+export type IngestionSource = 'equipboard' | 'effectsdb';
 
 export interface RawCatalogItem {
   source: IngestionSource;
@@ -37,16 +37,7 @@ export async function fetchRawCatalog(source: IngestionSource, query: string): P
       notes: 'Classic versatile guitar',
       attribution: 'Equipboard user submission',
     },
-    {
-      source: 'reverb',
-      externalId: 'rv-456',
-      brand: 'Boss',
-      model: 'DS-1 Distortion',
-      kind: 'pedal',
-      imageUrl: 'https://example.com/ds1.jpg',
-      notes: 'Orange classic distortion pedal',
-      attribution: 'Reverb listing metadata',
-    },
+    // Reverb samples removed
     {
       source: 'effectsdb',
       externalId: 'edb-789',

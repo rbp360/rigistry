@@ -86,7 +86,6 @@ export default function ImportGearPage() {
           <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
             <select value={source} onChange={(e) => setSource(e.target.value as IngestionSource)} style={{ padding: '8px 10px', border: '1px solid #ddd', borderRadius: 8 }}>
               <option value="equipboard">Equipboard</option>
-              <option value="reverb">Reverb</option>
               <option value="effectsdb">EffectsDB</option>
             </select>
             <input
