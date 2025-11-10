@@ -83,7 +83,7 @@ export interface PresetLinkDoc {
 
 // Catalog data provenance for licensing/attribution audits
 export interface CatalogSourceMeta {
-  source: 'equipboard' | 'effectsdb' | 'guitarpedaldb' | 'wikidata' | 'user';
+  source: 'equipboard' | 'effectsdb' | 'guitarpedaldb' | 'user';
   externalId?: string; // ID from upstream source
   attribution?: string; // required attribution string
   licenseNote?: string; // summary of licensing constraints
