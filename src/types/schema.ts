@@ -1,5 +1,63 @@
 // High-level gear classification used across catalog & rig nodes
-export type GearKind = 'guitar' | 'bass' | 'amp' | 'cab' | 'pedal' | 'keyboard' | 'accessory' | 'interface' | 'microphone';
+// New top-level categories for Add Gear (20 categories provided by product):
+export type GearCategory =
+  | 'guitar'
+  | 'bass'
+  | 'drums'
+  | 'vocals-microphone'
+  | 'piano'
+  | 'decks-dj'
+  | 'laptop-electronic'
+  | 'keyboard-synth-sampler'
+  | 'percussion'
+  | 'strings'
+  | 'woodwind'
+  | 'brass'
+  | 'live-sound'
+  | 'studio-sound'
+  | 'other'
+  | 'amplifiers-effects'
+  | 'accessories';
+
+// Backward-compatibility for existing data and rig-builder nodes
+export type GearKind =
+  | GearCategory
+  | 'amp'
+  | 'cab'
+  | 'pedal'
+  | 'interface'
+  | 'microphone'
+  | 'accessory'
+  // legacy values preserved for backward compatibility
+  | 'synthesizer'
+  | 'keyboard'
+  | 'sampler';
+
+// Labels for the 20 categories shown in UI selects
+export const GEAR_CATEGORY_LABELS: Record<GearCategory, string> = {
+  guitar: 'Guitar',
+  bass: 'Bass',
+  drums: 'Drums',
+  'vocals-microphone': 'Vocals/Microphone',
+  piano: 'Piano',
+  'decks-dj': 'Decks/DJ',
+  'laptop-electronic': 'Laptop/Electronic',
+  'keyboard-synth-sampler': 'Keyboard/Synth/Sampler',
+  percussion: 'Percussion',
+  strings: 'Strings',
+  woodwind: 'Woodwind',
+  brass: 'Brass',
+  'live-sound': 'Live sound',
+  'studio-sound': 'Studio sound',
+  other: 'Other',
+  'amplifiers-effects': 'Amplifiers/Effects',
+  accessories: 'Accessories', // corrected spelling from source list
+};
+
+// Convenience list for Add Gear dropdown
+export const GEAR_ADD_CATEGORIES: Array<{ value: GearCategory; label: string }> = (
+  Object.entries(GEAR_CATEGORY_LABELS) as Array<[GearCategory, string]>
+).map(([value, label]) => ({ value, label }));
 
 export interface UserDoc {
   uid: string;

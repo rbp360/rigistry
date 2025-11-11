@@ -2,12 +2,14 @@
 
 import { useAuth } from '@/contexts/AuthContext';
 import { useState } from 'react';
-import type { GearDoc, GearKind } from '@/types/schema';
+import type { GearDoc, GearKind, GearCategory } from '@/types/schema';
+import { GEAR_ADD_CATEGORIES } from '@/types/schema';
 import CloudinaryUploader from '@/components/CloudinaryUploader';
 import { createGearItem } from '@/lib/db';
 import { useToast } from '@/contexts/ToastContext';
 
-const kinds: GearKind[] = ['guitar','bass','amp','cab','pedal','keyboard','accessory','interface','microphone'];
+// Use the 20 product categories for kind selection in Add Gear
+const kinds = GEAR_ADD_CATEGORIES;
 
 export default function AddGearPage() {
   const { user } = useAuth();
@@ -63,12 +65,12 @@ export default function AddGearPage() {
         <label style={{ display: 'grid', gap: 6 }}>
           <span>Kind</span>
           <select
-            value={form.kind as string}
-            onChange={(e) => setForm((f) => ({ ...f, kind: e.target.value as GearKind }))}
+            value={(form.kind as string) || 'guitar'}
+            onChange={(e) => setForm((f) => ({ ...f, kind: e.target.value as GearCategory }))}
             style={{ padding: '8px 10px', border: '1px solid #ddd', borderRadius: 8 }}
           >
-            {kinds.map((k) => (
-              <option key={k} value={k}>{k}</option>
+            {kinds.map((opt) => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
             ))}
           </select>
         </label>
