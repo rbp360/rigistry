@@ -1,6 +1,7 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --font-app: 'Helvetica Condensed Bold', Arial, Helvetica, sans-serif;
   --font-tungstern: 'Tungstern Semibold', Arial, Helvetica, sans-serif;
   --font-fibre: 'Fibre Vintage', serif;
 }
@@ -21,7 +22,7 @@ body {
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-app);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -46,6 +47,15 @@ body {
   font-display: swap;
 }
 
+/* Helvetica Condensed Bold font */
+@font-face {
+  font-family: 'Helvetica Condensed Bold';
+  src: url('/branding/fonts/Helvetica Condensed Bold.otf') format('opentype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
 * {
   box-sizing: border-box;
   padding: 0;
@@ -59,8 +69,8 @@ a {
 
 /* Header & footer styling with Tungstern font */
 .site-header, .site-footer {
-  font-family: var(--font-tungstern);
-  letter-spacing: 0.1em; /* Increased tracking for Tungsten */
+  font-family: var(--font-app);
+  letter-spacing: 0.06em;
 }
 
 .site-header nav a, .site-footer nav a {

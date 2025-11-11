@@ -37,7 +37,6 @@ export default function RootLayout({
           <header className="site-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 32px', borderBottom: '1px solid #e5e7eb', background: '#181818', color: '#f5f5f5' }}>
             <nav style={{ display: 'flex', gap: 32, fontSize: 20, fontWeight: 600 }}>
               <Link href="/rigistry">Rigistry</Link>
-              <Link href="/board-builder">Board builder</Link>
               <Link href="/messageboard">Connect/messageboard</Link>
               <Link href="/">About</Link>
               {/* Primary CTA: Create a Carnet */}

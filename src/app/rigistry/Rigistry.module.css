@@ -31,7 +31,10 @@
 
 .cardInner {
   text-align: center;
-  color: #22c55e; /* Bright green to match active surrounds */
+  color: #22c55e;
+  font-family: var(--font-app);
+  font-weight: 700;
+  letter-spacing: 0.5px;
 }
 
 /* Thumbnail wrapper: minimal background just around the image */
@@ -39,9 +42,10 @@
   display: inline-block;
   background: #222;
   border-radius: 0.75rem;
-  padding: 8px; /* keep the box only slightly larger than the image */
+  padding: 8px;
   box-shadow: 0 2px 12px rgba(0,0,0,0.12);
   transition: box-shadow 0.2s, opacity 0.2s;
+  font-family: var(--font-app);
 }
 
 /* Active (non-grey) rooms: add a bright green outline ring */
