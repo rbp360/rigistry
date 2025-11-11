@@ -7,6 +7,7 @@ import { GEAR_ADD_CATEGORIES, ROOM_SUGGESTIONS, ROOM_KIND_PRIORITIES, getOrdered
 import { useSearchParams } from 'next/navigation';
 import CloudinaryUploader from '@/components/CloudinaryUploader';
 import { createGearItem } from '@/lib/db';
+import KindDetailAutocomplete from '@/components/KindDetailAutocomplete';
 import { useToast } from '@/contexts/ToastContext';
 
 // Updated to use 20 unified product categories for gear kind selection (ordered per room via helper)
@@ -59,6 +60,7 @@ export default function AddGearRigistryPage() {
       const saved = await createGearItem({
         ownerId: user.uid,
         kind: form.kind as GearKind,
+        kindDetail: form.kindDetail?.trim() || undefined,
         brand: form.brand?.trim() || undefined,
         model: form.model?.trim() || undefined,
         serialNumber: form.serialNumber?.trim() || undefined,
@@ -105,6 +107,17 @@ export default function AddGearRigistryPage() {
               <option key={opt.value} value={opt.value}>{opt.label}</option>
             ))}
           </select>
+        </label>
+        <label style={{ display: 'grid', gap: 6 }}>
+          <span>Kind detail</span>
+          <KindDetailAutocomplete
+            value={form.kindDetail ?? ''}
+            kind={form.kind as GearCategory}
+            room={form.room as RoomKey}
+            onChange={v => setForm(f => ({ ...f, kindDetail: v }))}
+            placeholder="Start typing (auto-suggest)…"
+          />
+          <small style={{ opacity: 0.7 }}>Suggestions ranked by matching category and room priority.</small>
         </label>
         <label style={{ display: 'grid', gap: 6 }}>
           <span>Suggested room</span>

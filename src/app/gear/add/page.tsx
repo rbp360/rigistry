@@ -6,6 +6,7 @@ import type { GearDoc, GearKind, GearCategory } from '@/types/schema';
 import { GEAR_ADD_CATEGORIES } from '@/types/schema';
 import CloudinaryUploader from '@/components/CloudinaryUploader';
 import { createGearItem } from '@/lib/db';
+import KindDetailAutocomplete from '@/components/KindDetailAutocomplete';
 import { useToast } from '@/contexts/ToastContext';
 
 // Use the 20 product categories for kind selection in Add Gear
@@ -33,6 +34,7 @@ export default function AddGearPage() {
       const saved = await createGearItem({
         ownerId: user.uid,
         kind: form.kind as GearKind,
+        kindDetail: form.kindDetail?.trim() || undefined,
         brand: form.brand?.trim() || undefined,
         model: form.model?.trim() || undefined,
         serialNumber: form.serialNumber?.trim() || undefined,
@@ -73,6 +75,17 @@ export default function AddGearPage() {
               <option key={opt.value} value={opt.value}>{opt.label}</option>
             ))}
           </select>
+        </label>
+
+        <label style={{ display: 'grid', gap: 6 }}>
+          <span>Kind detail</span>
+          <KindDetailAutocomplete
+            value={form.kindDetail ?? ''}
+            kind={form.kind as GearCategory}
+            onChange={(v) => setForm((f) => ({ ...f, kindDetail: v }))}
+            placeholder="Start typing (auto-suggest)…"
+          />
+          <small style={{ opacity: 0.7 }}>Auto-suggests instruments; choose or keep custom text.</small>
         </label>
 
         <label style={{ display: 'grid', gap: 6 }}>

@@ -1,7 +1,8 @@
 'use client';
 import { getDb } from '@/lib/firebase';
 import { updateGearItem, archiveGearItem } from '@/lib/db';
-import type { GearDoc, GearKind } from '@/types/schema';
+import type { GearDoc, GearKind, GearCategory } from '@/types/schema';
+import KindDetailAutocomplete from '@/components/KindDetailAutocomplete';
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
@@ -45,6 +46,7 @@ export default function GearDetailPage() {
             id: snap.id,
             ownerId: d.ownerId,
             kind: d.kind,
+            kindDetail: d.kindDetail ?? undefined,
             brand: d.brand ?? undefined,
             model: d.model ?? undefined,
             serialNumber: d.serialNumber ?? undefined,
@@ -63,6 +65,7 @@ export default function GearDetailPage() {
             if (editing === false) {
               setForm({
                 kind: mapped.kind,
+                kindDetail: mapped.kindDetail,
                 brand: mapped.brand,
                 model: mapped.model,
                 serialNumber: mapped.serialNumber,
@@ -86,6 +89,7 @@ export default function GearDetailPage() {
     try {
       const payload: Partial<GearDoc> = {
         kind: form.kind ?? gear.kind,
+        kindDetail: form.kindDetail ?? gear.kindDetail,
         brand: form.brand ?? gear.brand,
         model: form.model ?? gear.model,
         serialNumber: form.serialNumber ?? gear.serialNumber,
@@ -166,6 +170,7 @@ export default function GearDetailPage() {
                 >
                   Edit
                 </button>
+                {gear.kindDetail && <div style={{ fontSize: 13, opacity: 0.7 }}>Kind detail: {gear.kindDetail}</div>}
               </div>
             )}
             {editing && (
@@ -185,6 +190,16 @@ export default function GearDetailPage() {
                   >
                     {gearKinds.map((k) => <option key={k} value={k}>{k}</option>)}
                   </select>
+                </label>
+                <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <span>Kind detail</span>
+                  <KindDetailAutocomplete
+                    value={form.kindDetail ?? gear.kindDetail ?? ''}
+                    kind={(form.kind ?? gear.kind) as GearCategory}
+                    onChange={(v) => setForm((f) => ({ ...f, kindDetail: v }))}
+                    placeholder="Start typing (auto-suggest)…"
+                  />
+                  <small style={{ opacity: 0.7 }}>Use suggestions or custom text.</small>
                 </label>
                 <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   <span>Brand</span>

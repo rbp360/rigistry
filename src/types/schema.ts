@@ -129,6 +129,8 @@ export interface GearDoc {
   id?: string; // convenience when reading
   ownerId: string; // users.uid
   kind: GearKind;
+  // Optional specific instrument subtype or detail, e.g., "alto saxophone", "electric guitar".
+  kindDetail?: string;
   brand?: string;
   model?: string;
   serialNumber?: string;
