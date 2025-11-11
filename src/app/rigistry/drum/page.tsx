@@ -1,4 +1,5 @@
 import Image from 'next/image';
+import Link from 'next/link';
 
 export default function DrumRoom() {
   return (
@@ -6,6 +7,22 @@ export default function DrumRoom() {
       <h1>Drum Room</h1>
       <Image src="/branding/drum room.png" alt="Drum Room" width={220} height={220} />
       <p>Add drum kits, percussion, and related gear here.</p>
+      <div style={{ margin: '12px 0 20px' }}>
+        <Link
+          href="/rigistry/add"
+          style={{
+            display: 'inline-block',
+            background: '#222',
+            color: '#fff',
+            borderRadius: 24,
+            padding: '10px 18px',
+            textDecoration: 'none',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.10)'
+          }}
+        >
+          + Add Gear
+        </Link>
+      </div>
       {/* TODO: List gear in this room */}
     </main>
   );

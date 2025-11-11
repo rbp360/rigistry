@@ -38,7 +38,7 @@ export default function RootLayout({
             <nav style={{ display: 'flex', gap: 32, fontSize: 20, fontWeight: 600 }}>
               <Link href="/rigistry">Rigistry</Link>
               <Link href="/messageboard">Connect/messageboard</Link>
-              <Link href="/">About</Link>
+              <Link href="/about">About</Link>
               {/* Primary CTA: Create a Carnet */}
               <Link
                 href="/rigistry/carnet"
@@ -66,9 +66,8 @@ export default function RootLayout({
           <footer className="site-footer">
             <nav style={{ display: 'flex', gap: 32, fontSize: 16 }}>
               <Link href="/rigistry">Rigistry</Link>
-              <Link href="/board-builder">Board builder</Link>
               <Link href="/messageboard">Connect/messageboard</Link>
-              <Link href="/">About</Link>
+              <Link href="/about">About</Link>
             </nav>
             <small>© {new Date().getFullYear()} Rigistry. All rights reserved.</small>
           </footer>

@@ -30,15 +30,97 @@ const scalePhase = [
 
 export default function AboutPage() {
   return (
-    <main style={{ padding: '64px 32px', maxWidth: 1200, margin: '0 auto' }}>
-      <section style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-        <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <h1 style={{ fontFamily: 'Fibre Vintage, serif', fontSize: '4rem', margin: 0 }}>Rigistry</h1>
-          <h2 style={{ fontFamily: 'Tungstern Semibold, sans-serif', fontSize: '1.6rem', fontWeight: 600, letterSpacing: '0.12em', margin: 0 }}>Your Gear. Your Story. Your Signal Chain.</h2>
-          <p style={{ maxWidth: 800, margin: '12px auto 0', fontSize: '1.05rem', lineHeight: 1.5 }}>
-            Rigistry is a creative gear catalogue and social platform for musicians. Log every instrument and accessory, capture exact settings, build visual rigs, and connect with players who share your sonic DNA.
-          </p>
+    <main style={{ padding: '0 0 64px', maxWidth: 1400, margin: '0 auto' }}>
+      {/* Hero section */}
+      <section
+        style={{
+          minHeight: '60vh',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          textAlign: 'center',
+          gap: 28,
+          background: 'radial-gradient(circle at center, #0d0d0d 0%, #000 70%)',
+          color: '#e5e5e5',
+          padding: '90px 32px 110px'
+        }}
+      >
+        <h1 style={{ fontFamily: 'var(--font-fibre, Fibre Vintage, serif)', fontSize: 'clamp(3rem,8vw,5rem)', margin: 0, lineHeight: 1 }}>
+          Rigistry
+        </h1>
+        <h2
+          style={{
+            fontFamily: 'var(--font-tungstern, Tungstern Semibold, sans-serif)',
+            fontSize: 'clamp(1.2rem,2.8vw,1.9rem)',
+            fontWeight: 600,
+            letterSpacing: '0.14em',
+            margin: 0,
+            textTransform: 'uppercase'
+          }}
+        >
+          Your Gear · Your Story · Your Signal Chain
+        </h2>
+        <p style={{ maxWidth: 920, margin: '4px auto 0', fontSize: '1.1rem', lineHeight: 1.55, fontWeight: 500 }}>
+          Catalogue instruments & accessories, capture exact settings, build visual rigs, and discover players who share your sonic DNA.
+        </p>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, marginTop: 12 }}>
+          <a
+            href="/rigistry"
+            style={{
+              padding: '14px 28px',
+              background: '#22c55e',
+              color: '#041105',
+              borderRadius: 32,
+              fontSize: '1rem',
+              fontWeight: 700,
+              textDecoration: 'none',
+              boxShadow: '0 4px 18px rgba(0,255,140,0.25)',
+              letterSpacing: '0.05em'
+            }}
+          >
+            Explore Rigistry →
+          </a>
+          <a
+            href="/rigistry/add"
+            style={{
+              padding: '14px 28px',
+              background: '#ffffff',
+              color: '#111',
+              borderRadius: 32,
+              fontSize: '1rem',
+              fontWeight: 700,
+              textDecoration: 'none',
+              boxShadow: '0 4px 16px rgba(255,255,255,0.18)',
+              letterSpacing: '0.05em'
+            }}
+          >
+            Add Your First Gear +
+          </a>
         </div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 36, marginTop: 64 }}>
+          {uspBullets.map((b) => (
+            <div
+              key={b}
+              style={{
+                minWidth: 220,
+                maxWidth: 300,
+                background: 'rgba(255,255,255,0.05)',
+                padding: '14px 16px 18px',
+                borderRadius: 18,
+                backdropFilter: 'blur(3px)',
+                border: '1px solid rgba(255,255,255,0.08)',
+                fontSize: '0.85rem',
+                lineHeight: 1.4
+              }}
+            >
+              {b}
+            </div>
+          ))}
+        </div>
+      </section>
+      {/* Roadmap & narrative */}
+      <section style={{ display: 'flex', flexDirection: 'column', gap: 24, padding: '56px 32px 0' }}>
         <div style={{ display: 'grid', gap: 32, gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', marginTop: 32 }}>
           <div>
             <h3 style={{ fontFamily: 'Tungstern Semibold', letterSpacing: '0.1em', fontSize: '0.95rem', textTransform: 'uppercase' }}>USP</h3>
@@ -77,7 +159,7 @@ export default function AboutPage() {
           </div>
         </div>
       </section>
-      <section style={{ marginTop: 64, display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <section style={{ marginTop: 64, display: 'flex', flexDirection: 'column', gap: 16, padding: '0 32px' }}>
         <h3 style={{ fontFamily: 'Tungstern Semibold', letterSpacing: '0.1em', fontSize: '0.95rem', textTransform: 'uppercase' }}>Why Visual Rigs?</h3>
         <p style={{ maxWidth: 900, lineHeight: 1.55 }}>
           A rig is a narrative: guitar → pedals → amps → speakers → modeling systems → presets. Existing platforms show pieces in isolation. Rigistry lets you drag, connect, annotate, and share the whole signal chain. For digital devices you can link original preset files instead of re-entering parameters manually.
@@ -86,7 +168,7 @@ export default function AboutPage() {
           Future enhancements will introduce chain graphs, preset parsing, and even augmented reality try-on experiences so you can see yourself with prospective instruments before buying.
         </p>
       </section>
-      <section style={{ marginTop: 64, display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <section style={{ marginTop: 64, display: 'flex', flexDirection: 'column', gap: 16, padding: '0 32px' }}>
         <h3 style={{ fontFamily: 'Tungstern Semibold', letterSpacing: '0.1em', fontSize: '0.95rem', textTransform: 'uppercase' }}>Data & Licensing</h3>
         <p style={{ maxWidth: 900, lineHeight: 1.55 }}>
           Catalog entries will blend user-created gear with curated sources (Equipboard, Reverb, Effects databases). All third-party imagery and specifications will respect licensing and attribution terms. Users retain control over their uploaded photos and can opt-in to share preset links.

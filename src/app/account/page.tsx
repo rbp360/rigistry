@@ -6,23 +6,41 @@ import { getDb } from '@/lib/firebase';
 import { doc, onSnapshot, setDoc, serverTimestamp } from 'firebase/firestore';
 import Image from 'next/image';
 import { useEffect, useMemo, useState } from 'react';
-import type { GearKind } from '@/types/schema';
+import type { InstrumentKind } from '@/types/schema';
+import { INSTRUMENT_KIND_LABELS } from '@/types/schema';
 import { listGearByOwner } from '@/lib/db';
 
 type ProfileForm = {
   displayName: string;
   location: string;
   bio: string;
-  primaryInstrument: GearKind | '';
+  primaryInstrument: InstrumentKind | '';
 };
 
-const gearKinds: GearKind[] = ['guitar','bass','amp','cab','pedal','keyboard','accessory','interface','microphone'];
+const instrumentKinds: InstrumentKind[] = [
+  'guitar',
+  'bass',
+  'drums',
+  'vocals',
+  'piano',
+  'decks-dj',
+  'laptop-electronic',
+  'synthesizer',
+  'keyboard',
+  'sampler',
+  'percussion',
+  'strings',
+  'woodwind',
+  'brass',
+  'live-sound',
+  'studio-sound',
+];
 
 interface UserProfileDoc {
   displayName?: string | null;
   location?: string | null;
   bio?: string | null;
-  primaryInstrument?: GearKind | null;
+  primaryInstrument?: InstrumentKind | null;
 }
 
 export default function AccountPage() {
@@ -43,7 +61,7 @@ export default function AccountPage() {
         displayName: (d?.displayName ?? user.displayName ?? '') as string,
         location: (d?.location ?? '') as string,
         bio: (d?.bio ?? '') as string,
-        primaryInstrument: (d?.primaryInstrument ?? '') as GearKind | '',
+  primaryInstrument: (d?.primaryInstrument ?? '') as InstrumentKind | '',
       });
     });
     return () => unsub();
@@ -137,13 +155,13 @@ export default function AccountPage() {
               <span>Primary instrument</span>
               <select
                 value={form.primaryInstrument}
-                onChange={(e) => setForm((f) => ({ ...f, primaryInstrument: e.target.value as GearKind }))}
+                onChange={(e) => setForm((f) => ({ ...f, primaryInstrument: e.target.value as InstrumentKind }))}
                 style={{ padding: '8px 10px', border: '1px solid #ddd', borderRadius: 8 }}
               >
                 <option value="">Select…</option>
-                {gearKinds.map((k) => (
+                {instrumentKinds.map((k) => (
                   <option key={k} value={k}>
-                    {k}
+                    {INSTRUMENT_KIND_LABELS[k]}
                   </option>
                 ))}
               </select>

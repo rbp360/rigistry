@@ -33,9 +33,14 @@ const rooms = [
     img: '/branding/Synthzone.png',
   },
   {
-    name: 'Live',
-    key: 'live',
+    name: 'Stage',
+    key: 'stage',
     img: '/branding/Live room.png',
+  },
+  {
+    name: 'Orchestral pit',
+    key: 'orchestral-pit',
+    img: '/branding/Orchestra.png',
   },
 ] as const;
 
@@ -49,7 +54,8 @@ export default function RigistryPage() {
     drum: 0,
     vocal: 0,
     synthzone: 0,
-    live: 0,
+    stage: 0,
+    'orchestral-pit': 0,
   });
 
   useEffect(() => {
@@ -62,12 +68,18 @@ export default function RigistryPage() {
         drum: 0,
         vocal: 0,
         synthzone: 0,
-        live: 0,
+        stage: 0,
+        'orchestral-pit': 0,
+      };
+      const normalize = (r?: string): RoomKey | null => {
+        if (!r) return null;
+        if (r === 'live') return 'stage';
+        const valid = ['guitar-amp','control','drum','vocal','synthzone','stage','orchestral-pit'] as const;
+        return (valid as readonly string[]).includes(r) ? (r as RoomKey) : null;
       };
       for (const g of all) {
-        if (g.room && counts[g.room as RoomKey] !== undefined) {
-          counts[g.room as RoomKey]++;
-        }
+        const rk = normalize(g.room);
+        if (rk) counts[rk]++;
       }
       setGearCounts(counts);
     })();

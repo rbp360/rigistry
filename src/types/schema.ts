@@ -112,11 +112,50 @@ export type FirebaseFirestoreTimestamp = {
 } | null;
 
 // User profile extension beyond auth basic fields
+// Expanded instrument taxonomy for user profile primary instrument selection
+// These are intentionally broader than GearKind and include performance roles.
+export type InstrumentKind =
+  | 'guitar'
+  | 'bass'
+  | 'drums'
+  | 'vocals'
+  | 'piano'
+  | 'decks-dj'
+  | 'laptop-electronic'
+  | 'synthesizer'
+  | 'keyboard'
+  | 'sampler'
+  | 'percussion'
+  | 'strings'
+  | 'woodwind'
+  | 'brass'
+  | 'live-sound'
+  | 'studio-sound';
+
+export const INSTRUMENT_KIND_LABELS: Record<InstrumentKind, string> = {
+  guitar: 'Guitar',
+  bass: 'Bass',
+  drums: 'Drums',
+  vocals: 'Vocals',
+  piano: 'Piano',
+  'decks-dj': 'Decks / DJ',
+  'laptop-electronic': 'Laptop / Electronic',
+  synthesizer: 'Synthesizer',
+  keyboard: 'Keyboard',
+  sampler: 'Sampler',
+  percussion: 'Percussion',
+  strings: 'Strings',
+  woodwind: 'Woodwind',
+  brass: 'Brass',
+  'live-sound': 'Live sound',
+  'studio-sound': 'Studio sound',
+};
+
 export interface UserProfileExtras {
   location?: string;
   bio?: string;
   favoriteGenres?: string[];
-  primaryInstrument?: GearKind;
+  primaryInstrument?: InstrumentKind; // broader creative role vs GearKind catalog classification
   // Maintenance tracking (e.g., last string change). Map gearId -> ISO date string
   maintenance?: Record<string, string>;
 }

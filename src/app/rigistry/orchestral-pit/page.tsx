@@ -1,12 +1,12 @@
 import Image from 'next/image';
 import Link from 'next/link';
 
-export default function ControlRoom() {
+export default function OrchestralPitRoom() {
   return (
     <main style={{ padding: '2rem', textAlign: 'center' }}>
-      <h1>Control Room</h1>
-      <Image src="/branding/Control room.png" alt="Control Room" width={220} height={220} />
-      <p>Add mixing desks, monitors, and studio gear here.</p>
+      <h1>Orchestral pit</h1>
+      <Image src="/branding/Orchestra.png" alt="Orchestral pit room illustration" width={260} height={260} />
+      <p>Add orchestral, ensemble, and pit instrumentation here.</p>
       <div style={{ margin: '12px 0 20px' }}>
         <Link
           href="/rigistry/add"
@@ -23,7 +23,7 @@ export default function ControlRoom() {
           + Add Gear
         </Link>
       </div>
-      {/* TODO: List gear in this room */}
+      {/* TODO: List gear filtered by room = 'orchestral-pit' */}
     </main>
   );
 }

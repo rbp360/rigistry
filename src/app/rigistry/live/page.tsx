@@ -1,12 +1,6 @@
-import Image from 'next/image';
+import { redirect } from 'next/navigation';
 
-export default function LiveRoom() {
-  return (
-    <main style={{ padding: '2rem', textAlign: 'center' }}>
-      <h1>Live Room</h1>
-      <Image src="/branding/Live room.png" alt="Live Room" width={220} height={220} />
-      <p>Add PA, stage, and live gear here.</p>
-      {/* TODO: List gear in this room */}
-    </main>
-  );
+// Legacy route kept for backward-compatible bookmarks. Immediately redirect to the renamed room.
+export default function LegacyLiveRoomRedirect() {
+  redirect('/rigistry/stage');
 }
