@@ -2,14 +2,14 @@
 'use client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useState } from 'react';
-import type { GearDoc, GearKind, GearCategory } from '@/types/schema';
-import { GEAR_ADD_CATEGORIES, ROOM_SUGGESTIONS } from '@/types/schema';
+import type { GearDoc, GearKind, GearCategory, RoomKey } from '@/types/schema';
+import { GEAR_ADD_CATEGORIES, ROOM_SUGGESTIONS, ROOM_KIND_PRIORITIES, getOrderedCategoriesForRoom } from '@/types/schema';
+import { useSearchParams } from 'next/navigation';
 import CloudinaryUploader from '@/components/CloudinaryUploader';
 import { createGearItem } from '@/lib/db';
 import { useToast } from '@/contexts/ToastContext';
 
-// Updated to use 20 unified product categories for gear kind selection
-const kinds = GEAR_ADD_CATEGORIES;
+// Updated to use 20 unified product categories for gear kind selection (ordered per room via helper)
 const rooms = [
   { name: 'Guitar/Amp room', key: 'guitar-amp' },
   { name: 'Control room', key: 'control' },
@@ -17,6 +17,7 @@ const rooms = [
   { name: 'Vocal booth', key: 'vocal' },
   { name: 'Synthzone', key: 'synthzone' },
   { name: 'Stage', key: 'stage' },
+  { name: 'DJ booth', key: 'dj-booth' },
   { name: 'Orchestral Pit', key: 'orchestral-pit' },
   { name: 'Live', key: 'live' },
 ];
@@ -25,7 +26,17 @@ const rooms = [
 
 export default function AddGearRigistryPage() {
   const { user } = useAuth();
-  const [form, setForm] = useState<Partial<GearDoc>>({ kind: 'guitar', room: ROOM_SUGGESTIONS['guitar'] ?? rooms[0].key });
+  const search = useSearchParams();
+  const qpRoom = (search?.get('room') ?? '') as RoomKey | '';
+  const qpKind = (search?.get('kind') ?? '') as GearCategory | '';
+  const initialRoom: string | undefined = qpRoom && rooms.some(r => r.key === qpRoom) ? qpRoom : undefined;
+  const initialKind: GearCategory | undefined = qpKind && GEAR_ADD_CATEGORIES.some(c => c.value === qpKind)
+    ? qpKind
+    : (initialRoom ? (ROOM_KIND_PRIORITIES[initialRoom as RoomKey]?.[0]) : 'guitar');
+  const [form, setForm] = useState<Partial<GearDoc>>({
+    kind: initialKind,
+    room: initialRoom ?? (ROOM_SUGGESTIONS[initialKind as GearCategory] ?? rooms[0].key),
+  });
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const { addToast } = useToast();
@@ -90,7 +101,9 @@ export default function AddGearRigistryPage() {
             }))}
             style={{ padding: '8px 10px', border: '1px solid #ddd', borderRadius: 8 }}
           >
-            {kinds.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+            {getOrderedCategoriesForRoom(form.room as RoomKey | undefined).map(opt => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
           </select>
         </label>
         <label style={{ display: 'grid', gap: 6 }}>

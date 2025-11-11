@@ -9,7 +9,7 @@ export default function DrumRoom() {
       <p>Add drum kits, percussion, and related gear here.</p>
       <div style={{ margin: '12px 0 20px' }}>
         <Link
-          href="/rigistry/add"
+          href="/rigistry/add?room=drum&kind=drums"
           style={{
             display: 'inline-block',
             background: '#222',

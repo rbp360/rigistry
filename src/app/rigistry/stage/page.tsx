@@ -9,7 +9,7 @@ export default function StageRoom() {
       <p>Add PA, stage and performance gear here.</p>
       <div style={{ margin: '12px 0 20px' }}>
         <Link
-          href="/rigistry/add"
+          href="/rigistry/add?room=stage&kind=live-sound"
           style={{
             display: 'inline-block',
             background: '#222',

@@ -38,6 +38,11 @@ const rooms = [
     img: '/branding/Live room.png',
   },
   {
+    name: 'DJ booth',
+    key: 'dj-booth',
+    img: '/branding/DJbooth.png',
+  },
+  {
     name: 'Orchestral pit',
     key: 'orchestral-pit',
     img: '/branding/Orchestra.png',
@@ -55,6 +60,7 @@ export default function RigistryPage() {
     vocal: 0,
     synthzone: 0,
     stage: 0,
+    'dj-booth': 0,
     'orchestral-pit': 0,
   });
 
@@ -69,12 +75,13 @@ export default function RigistryPage() {
         vocal: 0,
         synthzone: 0,
         stage: 0,
+        'dj-booth': 0,
         'orchestral-pit': 0,
       };
       const normalize = (r?: string): RoomKey | null => {
         if (!r) return null;
         if (r === 'live') return 'stage';
-        const valid = ['guitar-amp','control','drum','vocal','synthzone','stage','orchestral-pit'] as const;
+        const valid = ['guitar-amp','control','drum','vocal','synthzone','stage','dj-booth','orchestral-pit'] as const;
         return (valid as readonly string[]).includes(r) ? (r as RoomKey) : null;
       };
       for (const g of all) {

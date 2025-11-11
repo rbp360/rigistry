@@ -9,7 +9,7 @@ export default function VocalBooth() {
       <p>Add microphones, vocal processors, and related gear here.</p>
       <div style={{ margin: '12px 0 20px' }}>
         <Link
-          href="/rigistry/add"
+          href="/rigistry/add?room=vocal&kind=vocals-microphone"
           style={{
             display: 'inline-block',
             background: '#222',

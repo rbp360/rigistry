@@ -9,7 +9,7 @@ export default function OrchestralPitRoom() {
       <p>Add orchestral, ensemble, and pit instrumentation here.</p>
       <div style={{ margin: '12px 0 20px' }}>
         <Link
-          href="/rigistry/add"
+          href="/rigistry/add?room=orchestral-pit&kind=strings"
           style={{
             display: 'inline-block',
             background: '#222',

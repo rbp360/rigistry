@@ -10,7 +10,7 @@ export default function GuitarAmpRoom() {
       <p>Add guitars, amps, pedals, and related gear here.</p>
       <div style={{ margin: '12px 0 20px' }}>
         <Link
-          href="/rigistry/add"
+          href="/rigistry/add?room=guitar-amp&kind=guitar"
           style={{
             display: 'inline-block',
             background: '#222',

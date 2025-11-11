@@ -67,6 +67,8 @@ export const ROOM_SUGGESTIONS: Partial<Record<GearCategory, string>> = {
   drums: 'drum',
   'vocals-microphone': 'vocal',
   piano: 'orchestral-pit',
+  'decks-dj': 'dj-booth',
+  'laptop-electronic': 'dj-booth',
   strings: 'orchestral-pit',
   woodwind: 'orchestral-pit',
   brass: 'orchestral-pit',
@@ -76,6 +78,42 @@ export const ROOM_SUGGESTIONS: Partial<Record<GearCategory, string>> = {
   'studio-sound': 'control',
   'amplifiers-effects': 'guitar-amp',
 };
+
+// Room keys used across the app
+export type RoomKey =
+  | 'guitar-amp'
+  | 'control'
+  | 'drum'
+  | 'vocal'
+  | 'synthzone'
+  | 'stage'
+  | 'dj-booth'
+  | 'orchestral-pit';
+
+// Priority ordering of categories per room. First entry is the default kind for that room.
+export const ROOM_KIND_PRIORITIES: Record<RoomKey, GearCategory[]> = {
+  'guitar-amp': ['guitar', 'bass', 'amplifiers-effects'],
+  control: ['studio-sound'],
+  drum: ['drums'],
+  vocal: ['vocals-microphone'],
+  synthzone: ['keyboard-synth-sampler'],
+  stage: ['live-sound'],
+  'dj-booth': ['decks-dj', 'laptop-electronic'],
+  'orchestral-pit': ['strings', 'woodwind', 'brass', 'percussion', 'piano'],
+};
+
+// Build an ordered list of categories for a room: prioritized first, then all others
+export function getOrderedCategoriesForRoom(room?: RoomKey) {
+  const base = GEAR_ADD_CATEGORIES.slice();
+  if (!room) return base;
+  const priorities = ROOM_KIND_PRIORITIES[room] ?? [];
+  const prioritySet = new Set<GearCategory>(priorities);
+  const prioritized = priorities
+    .map((p) => base.find((b) => b.value === p))
+    .filter((x): x is { value: GearCategory; label: string } => Boolean(x));
+  const rest = base.filter((b) => !prioritySet.has(b.value));
+  return [...prioritized, ...rest];
+}
 
 export interface UserDoc {
   uid: string;

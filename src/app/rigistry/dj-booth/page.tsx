@@ -1,15 +1,15 @@
 import Image from 'next/image';
 import Link from 'next/link';
 
-export default function SynthzoneRoom() {
+export default function DJBoothRoom() {
   return (
     <main style={{ padding: '2rem', textAlign: 'center' }}>
-      <h1>Synthzone</h1>
-      <Image src="/branding/Synthzone.png" alt="Synthzone" width={220} height={220} />
-      <p>Add synths, keys, and electronic gear here.</p>
+      <h1>DJ Booth</h1>
+      <Image src="/branding/DJbooth.png" alt="DJ Booth" width={220} height={220} />
+      <p>Add decks, mixers, DJ controllers, media players, lighting trigger interfaces and performance accessories here.</p>
       <div style={{ margin: '12px 0 20px' }}>
         <Link
-          href="/rigistry/add?room=synthzone&kind=keyboard-synth-sampler"
+          href="/rigistry/add?room=dj-booth&kind=decks-dj"
           style={{
             display: 'inline-block',
             background: '#222',
@@ -23,7 +23,7 @@ export default function SynthzoneRoom() {
           + Add Gear
         </Link>
       </div>
-      {/* TODO: List gear in this room */}
+      {/* TODO: List gear tagged with room = dj-booth */}
     </main>
   );
 }
