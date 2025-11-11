@@ -3,7 +3,7 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { useState } from 'react';
 import type { GearDoc, GearKind, GearCategory } from '@/types/schema';
-import { GEAR_ADD_CATEGORIES } from '@/types/schema';
+import { GEAR_ADD_CATEGORIES, ROOM_SUGGESTIONS } from '@/types/schema';
 import CloudinaryUploader from '@/components/CloudinaryUploader';
 import { createGearItem } from '@/lib/db';
 import { useToast } from '@/contexts/ToastContext';
@@ -16,6 +16,8 @@ const rooms = [
   { name: 'Drum room', key: 'drum' },
   { name: 'Vocal booth', key: 'vocal' },
   { name: 'Synthzone', key: 'synthzone' },
+  { name: 'Stage', key: 'stage' },
+  { name: 'Orchestral Pit', key: 'orchestral-pit' },
   { name: 'Live', key: 'live' },
 ];
 
@@ -23,7 +25,7 @@ const rooms = [
 
 export default function AddGearRigistryPage() {
   const { user } = useAuth();
-  const [form, setForm] = useState<Partial<GearDoc>>({ kind: 'guitar', room: rooms[0].key });
+  const [form, setForm] = useState<Partial<GearDoc>>({ kind: 'guitar', room: ROOM_SUGGESTIONS['guitar'] ?? rooms[0].key });
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const { addToast } = useToast();
@@ -78,20 +80,34 @@ export default function AddGearRigistryPage() {
       {!user && <p style={{ color: 'crimson' }}>You must sign in to add gear.</p>}
       <form onSubmit={onSubmit} style={{ display: 'grid', gap: 12, marginTop: 16 }}>
         <label style={{ display: 'grid', gap: 6 }}>
-          <span>Room</span>
-          <select value={form.room as string} onChange={e => setForm(f => ({ ...f, room: e.target.value }))} style={{ padding: '8px 10px', border: '1px solid #ddd', borderRadius: 8 }}>
-            {rooms.map(r => <option key={r.key} value={r.key}>{r.name}</option>)}
-          </select>
-        </label>
-        <label style={{ display: 'grid', gap: 6 }}>
           <span>Kind</span>
           <select
             value={(form.kind as string) || 'guitar'}
-            onChange={e => setForm(f => ({ ...f, kind: e.target.value as GearCategory }))}
+            onChange={e => setForm(f => ({
+              ...f,
+              kind: e.target.value as GearCategory,
+              room: ROOM_SUGGESTIONS[e.target.value as GearCategory] ?? f.room ?? ''
+            }))}
             style={{ padding: '8px 10px', border: '1px solid #ddd', borderRadius: 8 }}
           >
             {kinds.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
           </select>
+        </label>
+        <label style={{ display: 'grid', gap: 6 }}>
+          <span>Suggested room</span>
+          <select
+            value={(form.room as string) || ''}
+            onChange={e => setForm(f => ({ ...f, room: e.target.value }))}
+            style={{ padding: '8px 10px', border: '1px solid #ddd', borderRadius: 8 }}
+          >
+            <option value="">Select a room…</option>
+            {rooms.map(r => <option key={r.key} value={r.key}>{r.name}</option>)}
+          </select>
+          <small style={{ opacity: 0.8 }}>
+            {form.kind && ROOM_SUGGESTIONS[form.kind as GearCategory]
+              ? `Default suggestion based on kind: ${rooms.find(r => r.key === ROOM_SUGGESTIONS[form.kind as GearCategory])?.name}`
+              : 'No default for this kind; please choose.'}
+          </small>
         </label>
         <label style={{ display: 'grid', gap: 6 }}>
           <span>Brand</span>

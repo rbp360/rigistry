@@ -59,6 +59,24 @@ export const GEAR_ADD_CATEGORIES: Array<{ value: GearCategory; label: string }> 
   Object.entries(GEAR_CATEGORY_LABELS) as Array<[GearCategory, string]>
 ).map(([value, label]) => ({ value, label }));
 
+// Suggested default room placement for each GearCategory.
+// Values are room keys used in the rigistry UI; categories not listed require manual selection.
+export const ROOM_SUGGESTIONS: Partial<Record<GearCategory, string>> = {
+  guitar: 'guitar-amp',
+  bass: 'guitar-amp',
+  drums: 'drum',
+  'vocals-microphone': 'vocal',
+  piano: 'orchestral-pit',
+  strings: 'orchestral-pit',
+  woodwind: 'orchestral-pit',
+  brass: 'orchestral-pit',
+  percussion: 'orchestral-pit',
+  'keyboard-synth-sampler': 'synthzone',
+  'live-sound': 'stage',
+  'studio-sound': 'control',
+  'amplifiers-effects': 'guitar-amp',
+};
+
 export interface UserDoc {
   uid: string;
   displayName: string | null;
