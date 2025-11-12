@@ -19,7 +19,7 @@ import type { GearDoc, RigDoc, RigNodeDoc } from '@/types/schema';
 
 const gearConverter: FirestoreDataConverter<GearDoc> = {
   toFirestore(d: GearDoc): DocumentData {
-    const { ownerId, kind, kindDetail, brand, model, serialNumber, notes, imageUrl, specs, catalogSource, archived, room } = d;
+  const { ownerId, kind, kindDetail, brand, model, serialNumber, color, notes, imageUrl, specs, catalogSource, archived, room } = d;
     return {
       ownerId,
       kind,
@@ -27,7 +27,8 @@ const gearConverter: FirestoreDataConverter<GearDoc> = {
       brand: brand ?? null,
       model: model ?? null,
       serialNumber: serialNumber ?? null,
-      notes: notes ?? null,
+  notes: notes ?? null,
+  color: color ?? null,
       imageUrl: imageUrl ?? null,
       specs: specs ?? null,
       catalogSource: catalogSource ?? null,
@@ -45,7 +46,8 @@ const gearConverter: FirestoreDataConverter<GearDoc> = {
       brand: d.brand ?? undefined,
       model: d.model ?? undefined,
       serialNumber: d.serialNumber ?? undefined,
-      notes: d.notes ?? undefined,
+  notes: d.notes ?? undefined,
+  color: d.color ?? undefined,
       imageUrl: d.imageUrl ?? undefined,
       specs: d.specs ?? undefined,
       catalogSource: d.catalogSource ?? undefined,

@@ -134,6 +134,8 @@ export interface GearDoc {
   brand?: string;
   model?: string;
   serialNumber?: string;
+  // Optional color/finish descriptor to refine catalog & image searches (e.g., "sunburst", "black")
+  color?: string;
   notes?: string;
   imageUrl?: string; // hosted image URL (Cloudinary/Firebase Storage/Manufacturer)
   // Optional deeper metadata for search/filtering (extensible)
@@ -199,7 +201,7 @@ export interface PresetLinkDoc {
 
 // Catalog data provenance for licensing/attribution audits
 export interface CatalogSourceMeta {
-  source: 'equipboard' | 'effectsdb' | 'guitarpedaldb' | 'user';
+  source: 'equipboard' | 'effectsdb' | 'guitarpedaldb' | 'user' | 'reverb' | 'logo-dev';
   externalId?: string; // ID from upstream source
   attribution?: string; // required attribution string
   licenseNote?: string; // summary of licensing constraints

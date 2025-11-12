@@ -1,12 +1,15 @@
 // Clean rebuilt Add Gear page (duplicate/orphaned JSX removed)
 'use client';
+export const dynamic = 'force-dynamic';
 import { useAuth } from '@/contexts/AuthContext';
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import type { GearDoc, GearKind, GearCategory, RoomKey } from '@/types/schema';
 import { GEAR_ADD_CATEGORIES, ROOM_SUGGESTIONS, ROOM_KIND_PRIORITIES, getOrderedCategoriesForRoom } from '@/types/schema';
 import { useSearchParams } from 'next/navigation';
 import CloudinaryUploader from '@/components/CloudinaryUploader';
 import { createGearItem } from '@/lib/db';
+import { fetchStockImageForBrandModel } from '@/lib/reverb';
+import type { CatalogSourceMeta } from '@/types/schema';
 import KindDetailAutocomplete from '@/components/KindDetailAutocomplete';
 import { useToast } from '@/contexts/ToastContext';
 
@@ -25,7 +28,7 @@ const rooms = [
 
 // Reverb integration removed
 
-export default function AddGearRigistryPage() {
+function InnerAddPage() {
   const { user } = useAuth();
   const search = useSearchParams();
   const qpRoom = (search?.get('room') ?? '') as RoomKey | '';
@@ -39,6 +42,7 @@ export default function AddGearRigistryPage() {
     room: initialRoom ?? (ROOM_SUGGESTIONS[initialKind as GearCategory] ?? rooms[0].key),
   });
   const [saving, setSaving] = useState(false);
+  const [fetchingImage, setFetchingImage] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const { addToast } = useToast();
   // Third-party search removed; manual entry only
@@ -64,6 +68,7 @@ export default function AddGearRigistryPage() {
         brand: form.brand?.trim() || undefined,
         model: form.model?.trim() || undefined,
         serialNumber: form.serialNumber?.trim() || undefined,
+        color: form.color?.trim() || undefined,
         notes: form.notes?.trim() || undefined,
         imageUrl: form.imageUrl || undefined,
         room: form.room,
@@ -147,6 +152,18 @@ export default function AddGearRigistryPage() {
           <span>Serial number</span>
           <input type="text" value={form.serialNumber ?? ''} onChange={e => setForm(f => ({ ...f, serialNumber: e.target.value }))} placeholder="Optional (helps for insurance)" style={{ padding: '8px 10px', border: '1px solid #ddd', borderRadius: 8 }} />
         </label>
+        {(form.kindDetail || form.model) && (
+          <label style={{ display: 'grid', gap: 6 }}>
+            <span>Color / finish</span>
+            <input
+              type="text"
+              value={form.color ?? ''}
+              onChange={e => setForm(f => ({ ...f, color: e.target.value }))}
+              placeholder="Sunburst, black, cherry red…"
+              style={{ padding: '8px 10px', border: '1px solid #ddd', borderRadius: 8 }}
+            />
+          </label>
+        )}
         <label style={{ display: 'grid', gap: 6 }}>
           <span>Notes</span>
           <textarea value={form.notes ?? ''} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} rows={4} placeholder="Strings, pickups, condition, setup details…" style={{ padding: '8px 10px', border: '1px solid #ddd', borderRadius: 8, resize: 'vertical' }} />
@@ -157,9 +174,38 @@ export default function AddGearRigistryPage() {
             setForm(f => ({ ...f, imageUrl: r.secure_url || r.url || '' }));
             addToast({ type: 'success', title: 'Upload Complete', message: 'Image uploaded' });
           }} />
+          {!form.imageUrl && (
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                type="button"
+                disabled={fetchingImage || !form.brand || !form.model}
+                onClick={async () => {
+                  if (!form.brand || !form.model) return;
+                  setFetchingImage(true);
+                  const result = await fetchStockImageForBrandModel(form.brand, form.model, form.color);
+                  if (result.url) {
+                    const src: CatalogSourceMeta = {
+                      source: 'reverb',
+                      attribution: result.attribution ?? 'Stock image from Reverb.com',
+                      licenseNote: 'Display-only stock image; not for redistribution.',
+                    };
+                    setForm(f => ({ ...f, imageUrl: result.url ?? undefined, catalogSource: src }));
+                  }
+                  setFetchingImage(false);
+                }}
+                style={{ background: '#222', color: '#fff', padding: '6px 12px', borderRadius: 6, fontSize: 13, border: '1px solid #333', cursor: 'pointer' }}
+              >
+                {fetchingImage ? 'Fetching image…' : 'Fetch Stock Image'}
+              </button>
+              <small style={{ alignSelf: 'center', opacity: 0.6 }}>Uses Reverb API; falls back to logo if no match.</small>
+            </div>
+          )}
           {form.imageUrl && (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={form.imageUrl} alt="preview" style={{ maxWidth: 320, borderRadius: 8 }} />
+          )}
+          {form.catalogSource?.source === 'reverb' && (
+            <div style={{ fontSize: 11, opacity: 0.7 }}>Stock image from Reverb.com</div>
           )}
         </div>
         <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
@@ -170,5 +216,13 @@ export default function AddGearRigistryPage() {
         </div>
       </form>
     </main>
+  );
+}
+
+export default function AddGearRigistryPage() {
+  return (
+    <Suspense fallback={<main style={{ padding: 24 }}><p>Loading add form…</p></main>}>
+      <InnerAddPage />
+    </Suspense>
   );
 }

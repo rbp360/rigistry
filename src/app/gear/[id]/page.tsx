@@ -1,7 +1,8 @@
 'use client';
 import { getDb } from '@/lib/firebase';
 import { updateGearItem, archiveGearItem } from '@/lib/db';
-import type { GearDoc, GearKind, GearCategory } from '@/types/schema';
+import type { GearDoc, GearKind, GearCategory, CatalogSourceMeta } from '@/types/schema';
+import { fetchStockImageForBrandModel } from '@/lib/reverb';
 import KindDetailAutocomplete from '@/components/KindDetailAutocomplete';
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -143,6 +144,11 @@ export default function GearDetailPage() {
                   No image
                 </div>
               )}
+              {gear.catalogSource?.source === 'reverb' && (
+                <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, fontSize: 11, background: 'rgba(0,0,0,0.55)', color: '#fff', padding: '2px 6px', textAlign: 'right' }}>
+                  Stock image • Reverb.com
+                </div>
+              )}
             </div>
             <div style={{ marginTop: 12 }}>
               <CloudinaryUploader onUploaded={onImageUploaded} />
@@ -241,7 +247,7 @@ export default function GearDetailPage() {
                     placeholder="Tone settings, year, modifications, etc."
                   />
                 </label>
-                <div style={{ display: 'flex', gap: 10 }}>
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                   <button
                     type="submit"
                     disabled={saving}
@@ -256,6 +262,28 @@ export default function GearDetailPage() {
                   >
                     Cancel
                   </button>
+                  {!gear.imageUrl && (form.brand || gear.brand) && (form.model || gear.model) && (
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        const brand = (form.brand ?? gear.brand ?? '').trim();
+                        const model = (form.model ?? gear.model ?? '').trim();
+                        if (!brand || !model) return;
+                        const result = await fetchStockImageForBrandModel(brand, model);
+                        if (result.url) {
+                          const src: CatalogSourceMeta = {
+                            source: 'reverb',
+                            attribution: result.attribution ?? 'Stock image from Reverb.com',
+                            licenseNote: 'Display-only stock image; not for redistribution.',
+                          };
+                          setForm(f => ({ ...f, imageUrl: result.url ?? undefined, catalogSource: src }));
+                        }
+                      }}
+                      style={{ background: '#222', color: '#fff', padding: '8px 14px', borderRadius: 8, border: '1px solid #222', cursor: 'pointer' }}
+                    >
+                      Fetch Stock Image
+                    </button>
+                  )}
                 </div>
               </form>
             )}

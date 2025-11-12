@@ -25,6 +25,38 @@ This project uses [`next/font`](https://nextjs.org/docs/app/building-your-applic
 The Add Gear forms (`/gear/add`, `/rigistry/add`) and the gear edit page use an autocomplete for the **Kind detail** field. This lets you quickly select specific instruments (e.g. "electric guitar", "alto saxophone") or studio/live equipment (e.g. "Audio Interface", "Line Array").
 
 ### Data Sources
+
+## Stock Images & Attribution
+
+When a user does not upload a photo, a "Fetch Stock Image" button (add & edit forms) can retrieve a representative image.
+
+### Source Priority
+1. Reverb API (brand + model query) – returns first listing photo.
+2. Fallback: brand logo via logo.dev (approximate; adjust endpoint if needed).
+
+### Implementation Files
+* `src/app/api/stock-image/route.ts` – edge route performs Reverb lookup (if `REVERB_API_TOKEN` is configured) and fallback to logo.dev.
+* `src/lib/reverb.ts` – client helper `fetchStockImageForBrandModel` calling the server route.
+* UI integration in `gear/add/page.tsx` and `gear/[id]/page.tsx`.
+
+### Watermark & Attribution
+Images with `catalogSource.source === 'reverb'` display a small overlay: *"Stock image • Reverb.com"*. Attribution + license note stored in `catalogSource`.
+
+### Schema Extension
+`CatalogSourceMeta.source` now supports: `reverb` and `logo-dev` in addition to existing sources. Use `licenseNote` for compliance reminders.
+
+### Future Improvements (TODO)
+* Rate-limiting & caching of stock image responses.
+* Smarter listing selection (prefer exact model match vs generic bundles).
+* Explicit logo.dev response validation & error handling.
+* Batch backfill script for existing gear missing images.
+* Optional image proxying to avoid hotlinking longevity issues.
+
+### Error Handling
+If no image is found, the fallback returns a 404; UI currently remains unchanged. Future enhancement: display inline hint offering manual upload.
+
+### Environment Variables
+Set `REVERB_API_TOKEN` in deployment environment for live Reverb integration.
 1. `public/instrument-list.txt` – large base list of instruments.
 2. Curated room lists – additional context-specific items for certain rooms (drum, control, stage) defined in `src/lib/instruments.ts`.
 3. Common instruments list – high-frequency items hard-boosted to appear first whenever they match.

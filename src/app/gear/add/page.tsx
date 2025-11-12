@@ -2,10 +2,11 @@
 
 import { useAuth } from '@/contexts/AuthContext';
 import { useState } from 'react';
-import type { GearDoc, GearKind, GearCategory } from '@/types/schema';
+import type { GearDoc, GearKind, GearCategory, CatalogSourceMeta } from '@/types/schema';
 import { GEAR_ADD_CATEGORIES } from '@/types/schema';
 import CloudinaryUploader from '@/components/CloudinaryUploader';
 import { createGearItem } from '@/lib/db';
+import { fetchStockImageForBrandModel } from '@/lib/reverb';
 import KindDetailAutocomplete from '@/components/KindDetailAutocomplete';
 import { useToast } from '@/contexts/ToastContext';
 
@@ -16,6 +17,7 @@ export default function AddGearPage() {
   const { user } = useAuth();
   const [form, setForm] = useState<Partial<GearDoc>>({ kind: 'guitar' });
   const [saving, setSaving] = useState(false);
+  const [fetchingImage, setFetchingImage] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const { addToast } = useToast();
 
@@ -38,6 +40,7 @@ export default function AddGearPage() {
         brand: form.brand?.trim() || undefined,
         model: form.model?.trim() || undefined,
         serialNumber: form.serialNumber?.trim() || undefined,
+        color: form.color?.trim() || undefined,
         notes: form.notes?.trim() || undefined,
         imageUrl: form.imageUrl || undefined,
       });
@@ -120,6 +123,18 @@ export default function AddGearPage() {
             style={{ padding: '8px 10px', border: '1px solid #ddd', borderRadius: 8 }}
           />
         </label>
+        {(form.kindDetail || form.model) && (
+          <label style={{ display: 'grid', gap: 6 }}>
+            <span>Color / finish</span>
+            <input
+              type="text"
+              value={form.color ?? ''}
+              onChange={(e) => setForm((f) => ({ ...f, color: e.target.value }))}
+              placeholder="Sunburst, black, cherry red…"
+              style={{ padding: '8px 10px', border: '1px solid #ddd', borderRadius: 8 }}
+            />
+          </label>
+        )}
 
         <label style={{ display: 'grid', gap: 6 }}>
           <span>Notes</span>
@@ -140,9 +155,38 @@ export default function AddGearPage() {
               addToast({ type: 'success', message: 'Image uploaded', title: 'Upload Complete' });
             }}
           />
+          {!form.imageUrl && (
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                type="button"
+                disabled={fetchingImage || !form.brand || !form.model}
+                onClick={async () => {
+                  if (!form.brand || !form.model) return;
+                  setFetchingImage(true);
+                  const result = await fetchStockImageForBrandModel(form.brand, form.model, form.color);
+                  if (result.url) {
+                    const src: CatalogSourceMeta = {
+                      source: 'reverb',
+                      attribution: result.attribution ?? 'Stock image from Reverb.com',
+                      licenseNote: 'Display-only stock image; not for redistribution.',
+                    };
+                    setForm(f => ({ ...f, imageUrl: result.url || undefined, catalogSource: src }));
+                  }
+                  setFetchingImage(false);
+                }}
+                style={{ background: '#222', color: '#fff', padding: '6px 12px', borderRadius: 6, fontSize: 13, border: '1px solid #333', cursor: 'pointer' }}
+              >
+                {fetchingImage ? 'Fetching image…' : 'Fetch Stock Image'}
+              </button>
+              <small style={{ alignSelf: 'center', opacity: 0.6 }}>Uses Reverb API; falls back to logo if no match.</small>
+            </div>
+          )}
           {form.imageUrl && (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={form.imageUrl} alt="preview" style={{ maxWidth: 320, borderRadius: 8 }} />
+          )}
+          {form.catalogSource?.source === 'reverb' && (
+            <div style={{ fontSize: 11, opacity: 0.7 }}>Stock image from Reverb.com</div>
           )}
         </div>
 
