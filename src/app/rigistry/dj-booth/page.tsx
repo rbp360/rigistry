@@ -1,5 +1,7 @@
+
 import Image from 'next/image';
 import Link from 'next/link';
+import RoomGearList from '../RoomGearList';
 
 export default function DJBoothRoom() {
   return (
@@ -23,7 +25,7 @@ export default function DJBoothRoom() {
           + Add Gear
         </Link>
       </div>
-      {/* TODO: List gear tagged with room = dj-booth */}
+  <RoomGearList room="dj-booth" />
     </main>
   );
 }

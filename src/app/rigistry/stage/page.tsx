@@ -1,5 +1,7 @@
+
 import Image from 'next/image';
 import Link from 'next/link';
+import RoomGearList from '../RoomGearList';
 
 export default function StageRoom() {
   return (
@@ -23,7 +25,7 @@ export default function StageRoom() {
           + Add Gear
         </Link>
       </div>
-      {/* TODO: List gear filtered by room = 'stage' */}
+  <RoomGearList room="stage" />
     </main>
   );
 }

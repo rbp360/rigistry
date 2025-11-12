@@ -1,5 +1,7 @@
+
 import Image from 'next/image';
 import Link from 'next/link';
+import RoomGearList from '../RoomGearList';
 
 export default function VocalBooth() {
   return (
@@ -23,7 +25,7 @@ export default function VocalBooth() {
           + Add Gear
         </Link>
       </div>
-      {/* TODO: List gear in this room */}
+  <RoomGearList room="vocal" />
     </main>
   );
 }

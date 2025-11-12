@@ -7,6 +7,7 @@ import {
   query,
   serverTimestamp,
   setDoc,
+  updateDoc,
   Timestamp,
   where,
   writeBatch,
@@ -19,7 +20,7 @@ import type { GearDoc, RigDoc, RigNodeDoc } from '@/types/schema';
 
 const gearConverter: FirestoreDataConverter<GearDoc> = {
   toFirestore(d: GearDoc): DocumentData {
-  const { ownerId, kind, kindDetail, brand, model, serialNumber, color, notes, imageUrl, specs, catalogSource, archived, room } = d;
+    const { ownerId, kind, kindDetail, brand, model, serialNumber, color, notes, imageUrl, specs, catalogSource, archived, deleted, room } = d;
     return {
       ownerId,
       kind,
@@ -27,13 +28,14 @@ const gearConverter: FirestoreDataConverter<GearDoc> = {
       brand: brand ?? null,
       model: model ?? null,
       serialNumber: serialNumber ?? null,
-  notes: notes ?? null,
-  color: color ?? null,
+      notes: notes ?? null,
+      color: color ?? null,
       imageUrl: imageUrl ?? null,
       specs: specs ?? null,
       catalogSource: catalogSource ?? null,
       room: room ?? null,
       archived: archived ?? false,
+      deleted: deleted ?? false,
     } as DocumentData;
   },
   fromFirestore(snap) {
@@ -46,13 +48,14 @@ const gearConverter: FirestoreDataConverter<GearDoc> = {
       brand: d.brand ?? undefined,
       model: d.model ?? undefined,
       serialNumber: d.serialNumber ?? undefined,
-  notes: d.notes ?? undefined,
-  color: d.color ?? undefined,
+      notes: d.notes ?? undefined,
+      color: d.color ?? undefined,
       imageUrl: d.imageUrl ?? undefined,
       specs: d.specs ?? undefined,
       catalogSource: d.catalogSource ?? undefined,
       room: d.room ?? undefined,
       archived: d.archived ?? false,
+      deleted: d.deleted ?? false,
       createdAt: (d.createdAt as Timestamp) ?? null,
       updatedAt: (d.updatedAt as Timestamp) ?? null,
     } satisfies GearDoc;
@@ -166,6 +169,7 @@ export async function createGearItem(partial: Omit<GearDoc, 'id' | 'createdAt' |
     ...partial,
     id: ref.id,
     archived: partial.archived ?? false,
+    deleted: partial.deleted ?? false,
     createdAt: null,
     updatedAt: null,
   };
@@ -178,14 +182,26 @@ export async function updateGearItem(id: string, updates: Partial<Omit<GearDoc, 
   const db = getDb();
   if (!db) return false;
   const ref = doc(gearCol(db), id);
-  const existing = await getDoc(ref);
-  if (!existing.exists()) return false;
-  await setDoc(ref, { ...updates, updatedAt: serverTimestamp() }, { merge: true });
-  return true;
+  // Use updateDoc to avoid converter enforcing full GearDoc and undefined required fields
+  try {
+    await updateDoc(ref, { ...updates, updatedAt: serverTimestamp() });
+    return true;
+  } catch (e) {
+    console.error('updateGearItem failed', e);
+    return false;
+  }
 }
 
 export async function archiveGearItem(id: string): Promise<boolean> {
-  return updateGearItem(id, { archived: true });
+  // Fetch existing document to avoid overwriting required fields
+  const db = getDb();
+  if (!db) return false;
+  const ref = doc(gearCol(db), id);
+  const existing = await getDoc(ref);
+  if (!existing.exists()) return false;
+  // Only update the 'archived' field, merge: true ensures other fields are preserved
+  await setDoc(ref, { archived: true }, { merge: true });
+  return true;
 }
 
 export async function loadRigNodes(rigId: string): Promise<RigNodeDoc[]> {

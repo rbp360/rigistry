@@ -1,5 +1,7 @@
+
 import Image from 'next/image';
 import Link from 'next/link';
+import RoomGearList from '../RoomGearList';
 
 export default function OrchestralPitRoom() {
   return (
@@ -23,7 +25,7 @@ export default function OrchestralPitRoom() {
           + Add Gear
         </Link>
       </div>
-      {/* TODO: List gear filtered by room = 'orchestral-pit' */}
+  <RoomGearList room="orchestral-pit" />
     </main>
   );
 }

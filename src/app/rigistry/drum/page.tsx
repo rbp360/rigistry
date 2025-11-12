@@ -1,5 +1,7 @@
+
 import Image from 'next/image';
 import Link from 'next/link';
+import RoomGearList from '../RoomGearList';
 
 export default function DrumRoom() {
   return (
@@ -23,7 +25,7 @@ export default function DrumRoom() {
           + Add Gear
         </Link>
       </div>
-      {/* TODO: List gear in this room */}
+  <RoomGearList room="drum" />
     </main>
   );
 }

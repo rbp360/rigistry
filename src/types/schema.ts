@@ -125,27 +125,28 @@ export interface UserDoc {
 }
 
 // Represents a catalog or user-owned gear item. If sourced from external catalog the catalogSource may be set.
-export interface GearDoc {
-  id?: string; // convenience when reading
-  ownerId: string; // users.uid
-  kind: GearKind;
-  // Optional specific instrument subtype or detail, e.g., "alto saxophone", "electric guitar".
-  kindDetail?: string;
-  brand?: string;
-  model?: string;
-  serialNumber?: string;
-  // Optional color/finish descriptor to refine catalog & image searches (e.g., "sunburst", "black")
-  color?: string;
-  notes?: string;
-  imageUrl?: string; // hosted image URL (Cloudinary/Firebase Storage/Manufacturer)
-  // Optional deeper metadata for search/filtering (extensible)
-  specs?: Record<string, string | number | boolean>;
-  catalogSource?: CatalogSourceMeta;
-  room?: string; // room assignment (e.g. 'guitar-amp', 'drum', etc.)
-  archived?: boolean; // soft delete / hide from active lists
-  createdAt?: FirebaseFirestoreTimestamp;
-  updatedAt?: FirebaseFirestoreTimestamp;
-}
+   export interface GearDoc {
+     id?: string; // convenience when reading
+     ownerId: string; // users.uid
+     kind: GearKind;
+     // Optional specific instrument subtype or detail, e.g., "alto saxophone", "electric guitar".
+     kindDetail?: string;
+     brand?: string;
+     model?: string;
+     serialNumber?: string;
+     // Optional color/finish descriptor to refine catalog & image searches (e.g., "sunburst", "black")
+     color?: string;
+     notes?: string;
+     imageUrl?: string; // hosted image URL (Cloudinary/Firebase Storage/Manufacturer)
+     // Optional deeper metadata for search/filtering (extensible)
+     specs?: Record<string, string | number | boolean>;
+     catalogSource?: CatalogSourceMeta;
+     room?: string; // room assignment (e.g. 'guitar-amp', 'drum', etc.)
+     archived?: boolean; // soft delete / hide from active lists
+     deleted?: boolean; // new field for recycle bin logic
+     createdAt?: FirebaseFirestoreTimestamp;
+     updatedAt?: FirebaseFirestoreTimestamp;
+   }
 
 export interface RigDoc {
   id?: string;
