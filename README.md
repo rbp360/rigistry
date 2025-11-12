@@ -61,6 +61,36 @@ Set `REVERB_API_TOKEN` in deployment environment for live Reverb integration.
 2. Curated room lists – additional context-specific items for certain rooms (drum, control, stage) defined in `src/lib/instruments.ts`.
 3. Common instruments list – high-frequency items hard-boosted to appear first whenever they match.
 
+## Logo.dev Integration
+
+Environment variables (add to `.env.local` – already gitignored):
+
+```
+NEXT_PUBLIC_LOGO_DEV_PUBLISHABLE_KEY=... # safe to expose
+LOGO_DEV_SECRET_KEY=...                  # server only
+```
+
+Usage examples:
+
+```ts
+// Client component
+import { getLogoDevPublicKey } from '@/lib/logoDev';
+const key = getLogoDevPublicKey();
+// Initialize Logo.dev client SDK with key
+
+// Server action / route
+import { createLogoServerSide } from '@/lib/logoDev';
+export async function action(formData: FormData) {
+	const name = String(formData.get('name'));
+	const created = await createLogoServerSide({ name });
+	return created;
+}
+```
+
+Security notes:
+- Never expose `LOGO_DEV_SECRET_KEY` to the browser or return it in JSON.
+- Rotate secrets promptly if leaked; update Vercel/hosting provider env vars.
+- Use server actions or route handlers for calls requiring the secret key.
 ### Ranking Precedence (highest first)
 1. Room-curated matches (e.g. "snare drum" in Drum room, "Audio Interface" in Control room, "Line Array" on Stage).
 2. Global common instruments (provided list like "electric guitar", "saxophone").

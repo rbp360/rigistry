@@ -11,6 +11,7 @@ import Link from 'next/link';
 import CloudinaryUploader from '@/components/CloudinaryUploader';
 import type { CloudinaryUploadResult } from '@/lib/cloudinary';
 import { useToast } from '@/contexts/ToastContext';
+import { buildLogoDevImageUrl } from '@/lib/logoDev';
 
 const gearKinds: GearKind[] = ['guitar','bass','amp','cab','pedal','keyboard','accessory','interface','microphone'];
 
@@ -26,6 +27,7 @@ export default function GearDetailPage() {
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState<Partial<GearDoc>>({});
   const [replacingImage, setReplacingImage] = useState(false);
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
 
   useEffect(() => {
     const db = getDb();
@@ -62,17 +64,35 @@ export default function GearDetailPage() {
           if (mapped.archived) {
             setError('This gear item has been archived.');
           }
-            setGear(mapped);
-            if (editing === false) {
-              setForm({
-                kind: mapped.kind,
-                kindDetail: mapped.kindDetail,
-                brand: mapped.brand,
-                model: mapped.model,
-                serialNumber: mapped.serialNumber,
-                notes: mapped.notes,
-              });
+          setGear(mapped);
+          // Compute logo watermark URL when brand is present
+          if (mapped.brand) {
+            try {
+              setLogoUrl(
+                buildLogoDevImageUrl(mapped.brand, {
+                  source: 'name',
+                  format: 'png',
+                  size: 800,
+                  retina: true,
+                  theme: 'light',
+                })
+              );
+            } catch {
+              setLogoUrl(null);
             }
+          } else {
+            setLogoUrl(null);
+          }
+          if (editing === false) {
+            setForm({
+              kind: mapped.kind,
+              kindDetail: mapped.kindDetail,
+              brand: mapped.brand,
+              model: mapped.model,
+              serialNumber: mapped.serialNumber,
+              notes: mapped.notes,
+            });
+          }
           setLoading(false);
         },
         (err) => {
@@ -126,19 +146,47 @@ export default function GearDetailPage() {
   }
 
   return (
-    <main style={{ padding: '32px 26px', maxWidth: 900, margin: '0 auto' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
-        <h1 style={{ fontFamily: 'var(--font-tungstern)', margin: 0 }}>Gear Detail</h1>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <Link href="/gear" style={{ fontSize: 14 }}>← Back to Gear List</Link>
-          <Link href="/rigistry/guitar-amp" style={{ fontSize: 14 }}>← Back to Room</Link>
-          <Link href="/gear/add" style={{ fontSize: 14 }}>+ Add Gear</Link>
+    <main style={{ position: 'relative', padding: '32px 26px', maxWidth: 900, margin: '0 auto' }}>
+      {logoUrl && (
+        <div
+          aria-hidden
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundImage: `url(${logoUrl})`,
+            backgroundRepeat: 'no-repeat',
+            backgroundPosition: 'center',
+            backgroundSize: 'min(80vw, 900px) auto',
+            opacity: 0.07,
+            pointerEvents: 'none',
+            zIndex: 0,
+            mixBlendMode: 'normal',
+          }}
+        />
+      )}
+      <div style={{ position: 'relative', zIndex: 1 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+          <h1 style={{ fontFamily: 'var(--font-tungstern)', margin: 0 }}>Gear Detail</h1>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <Link href="/gear" style={{ fontSize: 14 }}>← Back to Gear List</Link>
+            <Link href="/rigistry/guitar-amp" style={{ fontSize: 14 }}>← Back to Room</Link>
+            <Link href="/gear/add" style={{ fontSize: 14 }}>+ Add Gear</Link>
+          </div>
         </div>
-      </div>
-      {loading && <p style={{ opacity: 0.7, marginTop: 24 }}>Loading…</p>}
-      {error && !loading && <p style={{ color: '#b00020', marginTop: 24 }}>{error}</p>}
-      {!loading && gear && (
-        <section style={{ marginTop: 28, display: 'grid', gridTemplateColumns: '300px 1fr', gap: 32 }}>
+        {logoUrl && (
+          <a
+            href="https://www.logo.dev/"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ position: 'fixed', bottom: 8, right: 10, fontSize: 11, opacity: 0.45, zIndex: 2 }}
+          >
+            Logos by Logo.dev
+          </a>
+        )}
+        {loading && <p style={{ opacity: 0.7, marginTop: 24 }}>Loading…</p>}
+        {error && !loading && <p style={{ color: '#b00020', marginTop: 24 }}>{error}</p>}
+        {!loading && gear && (
+          <section style={{ marginTop: 28, display: 'grid', gridTemplateColumns: '300px 1fr', gap: 32 }}>
           <div>
             <div style={{ position: 'relative', width: '100%', paddingBottom: '100%', background: '#f4f4f4', borderRadius: 12, overflow: 'hidden' }}>
               {gear.imageUrl ? (
@@ -292,8 +340,9 @@ export default function GearDetailPage() {
               </form>
             )}
           </div>
-        </section>
+          </section>
       )}
+      </div>
     </main>
   );
 }
