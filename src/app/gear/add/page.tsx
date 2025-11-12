@@ -1,6 +1,7 @@
 'use client';
 
 import { useAuth } from '@/contexts/AuthContext';
+import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import type { GearDoc, GearKind, GearCategory, CatalogSourceMeta } from '@/types/schema';
 import { GEAR_ADD_CATEGORIES } from '@/types/schema';
@@ -21,6 +22,7 @@ export default function AddGearPage() {
   const [message, setMessage] = useState<string | null>(null);
   const { addToast } = useToast();
 
+  const router = useRouter();
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!user) {
@@ -45,8 +47,9 @@ export default function AddGearPage() {
         imageUrl: form.imageUrl || undefined,
       });
       if (saved) {
-        setMessage('Gear saved!');
         addToast({ type: 'success', title: 'Gear Added', message: `${saved.brand || 'Gear'} ${saved.model || ''} created.` });
+        // Redirect to instrument landing page
+        router.push(`/gear/${saved.id}`);
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to save gear';

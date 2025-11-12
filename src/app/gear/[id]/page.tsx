@@ -129,7 +129,11 @@ export default function GearDetailPage() {
     <main style={{ padding: '32px 26px', maxWidth: 900, margin: '0 auto' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
         <h1 style={{ fontFamily: 'var(--font-tungstern)', margin: 0 }}>Gear Detail</h1>
-        <Link href="/gear" style={{ fontSize: 14 }}>← Back to list</Link>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <Link href="/gear" style={{ fontSize: 14 }}>← Back to Gear List</Link>
+          <Link href="/rigistry/guitar-amp" style={{ fontSize: 14 }}>← Back to Room</Link>
+          <Link href="/gear/add" style={{ fontSize: 14 }}>+ Add Gear</Link>
+        </div>
       </div>
       {loading && <p style={{ opacity: 0.7, marginTop: 24 }}>Loading…</p>}
       {error && !loading && <p style={{ color: '#b00020', marginTop: 24 }}>{error}</p>}
