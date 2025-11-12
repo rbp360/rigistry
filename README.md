@@ -91,6 +91,31 @@ Security notes:
 - Never expose `LOGO_DEV_SECRET_KEY` to the browser or return it in JSON.
 - Rotate secrets promptly if leaked; update Vercel/hosting provider env vars.
 - Use server actions or route handlers for calls requiring the secret key.
+ 
+### Strict Canonical Brand Matching
+
+To prevent false-positive logo overlays (e.g. showing a generic "Paul Smith" when the intended brand is "Paul Reed Smith"), brand resolution is now **strict**:
+
+* Canonical display names and alias variants live in `src/lib/brandAliases.ts`.
+* Input manufacturer strings are normalized (lowercase, punctuation stripped, whitespace collapsed).
+* We only return a logo URL when the normalized input matches either:
+	1. A normalized canonical brand, or
+	2. A normalized alias explicitly mapped to a canonical brand.
+* No fuzzy / partial / substring matches are allowed; absence of a match yields an empty string when `strictNameMatchOnly: true` is passed.
+
+Example (hide overlay if unknown):
+
+```ts
+import { buildLogoDevImageUrl } from '@/lib/logoDev';
+
+const url = buildLogoDevImageUrl(manufacturerName, { strictNameMatchOnly: true });
+if (!url) {
+	// No intentional match -> skip rendering logo overlay
+}
+```
+
+To extend support: add the nice display name to `CANONICAL_BRANDS` and messy variants to `ALIAS_TO_CANONICAL` mapping to point back to that name.
+
 ### Ranking Precedence (highest first)
 1. Room-curated matches (e.g. "snare drum" in Drum room, "Audio Interface" in Control room, "Line Array" on Stage).
 2. Global common instruments (provided list like "electric guitar", "saxophone").

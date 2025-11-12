@@ -52,6 +52,8 @@ export async function createLogoServerSide(input: { name: string; [k: string]: u
  * Note: Adjust the endpoint pattern if your logo.dev account uses a different CDN or path.
  * Falls back to a generic text-based SVG via data URI if no key is present.
  */
+import { resolveCanonicalBrand } from './brandAliases';
+
 export function buildLogoDevImageUrl(
   brandOrDomain: string,
   opts?: {
@@ -61,6 +63,9 @@ export function buildLogoDevImageUrl(
     theme?: 'auto' | 'light' | 'dark';
     retina?: boolean;
     greyscale?: boolean;
+    // If true, do not return fallback SVG when brand name doesn't resolve; return empty string instead.
+    // This lets UI hide overlays when we don't have an intentional match.
+    strictNameMatchOnly?: boolean;
   }
 ): string {
   const key = process.env.NEXT_PUBLIC_LOGO_DEV_PUBLISHABLE_KEY;
@@ -70,7 +75,16 @@ export function buildLogoDevImageUrl(
   const retina = opts?.retina ?? true;
   const greyscale = opts?.greyscale ?? false;
   const isDomain = (opts?.source === 'domain') || /\./.test(brandOrDomain);
-  const encoded = encodeURIComponent(brandOrDomain.trim());
+  let effectiveBrand = brandOrDomain.trim();
+  if (!isDomain) {
+    const canonical = resolveCanonicalBrand(effectiveBrand);
+    if (canonical) {
+      effectiveBrand = canonical; // force canonical display name for consistent logo lookup
+    } else if (opts?.strictNameMatchOnly) {
+      return '';
+    }
+  }
+  const encoded = encodeURIComponent(effectiveBrand);
 
   if (key) {
     const path = isDomain ? encoded : `name/${encoded}`;
@@ -86,6 +100,10 @@ export function buildLogoDevImageUrl(
   }
 
   // Fallback: simple SVG with brand text as a watermark
+  if (opts?.strictNameMatchOnly && !isDomain) {
+    // If we requested strict matching and don’t have a canonical brand, return empty (no overlay)
+    return '';
+  }
   const svg = encodeURIComponent(
     `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 800'>
       <defs>

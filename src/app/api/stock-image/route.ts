@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { resolveCanonicalBrand } from '@/lib/brandAliases';
 
 // Use Node.js runtime for broader compatibility with external APIs and env vars
 export const runtime = 'nodejs';
@@ -12,6 +13,7 @@ const THROTTLE_MS = 2500;
 
 // Logo.dev simple endpoint (hypothetical) – adjust if real API differs
 function logoDevUrl(brand: string) {
+  // Use canonical brand (already resolved before calling) for path encoding
   const clean = brand.toLowerCase().replace(/[^a-z0-9]+/g, '-');
   return `https://logo.dev/api/logo/${clean}`;
 }
@@ -102,9 +104,11 @@ async function tryReverb(brand: string, model: string) {
 
 async function tryLogoDev(brand: string) {
   if (!brand) return null;
+  const canonical = resolveCanonicalBrand(brand);
+  if (!canonical) return null; // strict: only serve logos for intentional known brands
   return {
-    url: logoDevUrl(brand),
-    attribution: `Logo for ${brand}`,
+    url: logoDevUrl(canonical),
+    attribution: `Logo for ${canonical}`,
     source: 'logo.dev' as const,
     licenseNote: 'Logo fetched from logo.dev; verify trademark usage guidelines.',
   };
@@ -135,7 +139,7 @@ export async function GET(req: Request) {
     return NextResponse.json(reverbResult, { status: 200 });
   }
 
-  // 2) Fallback to logo.dev (brand only)
+  // 2) Fallback to logo.dev (brand only, strict canonical match). If brand missing, attempt first token of model.
   const fallback = await tryLogoDev(brand || (model.split(' ')[0] || ''));
   if (fallback) {
     return NextResponse.json({ ...fallback, reverbDebug: reverbResult }, { status: 200 });
