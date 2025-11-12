@@ -47,9 +47,9 @@ export default function AddGearPage() {
         imageUrl: form.imageUrl || undefined,
       });
       if (saved) {
-        addToast({ type: 'success', title: 'Gear Added', message: `${saved.brand || 'Gear'} ${saved.model || ''} created.` });
-        // Redirect to instrument landing page
-        router.push(`/gear/${saved.id}`);
+        // Use replace for immediate navigation, avoiding history issues
+        router.replace(`/gear/${saved.id}`);
+        return;
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to save gear';
@@ -116,8 +116,8 @@ export default function AddGearPage() {
           />
         </label>
 
-        <label style={{ display: 'grid', gap: 6 }}>
-          <span>Serial number</span>
+          <label style={{ display: 'grid', gap: 6 }}>
+            <span>Serial Number and/or Name</span>
           <input
             type="text"
             value={form.serialNumber ?? ''}

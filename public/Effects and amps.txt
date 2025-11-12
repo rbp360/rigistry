@@ -1,0 +1,17 @@
+Effect pedal (singular)
+Effect pedal(multi)
+Amplifier head
+Amplifier (combo)
+Amplifier cabinet
+FRFR cabinet
+Moddler
+IR unit
+Other pedal
+Pedal board
+Floor board
+Power amplifier
+Pre-amplifier
+Rack unit
+Capture unit
+Attenuator
+Other 

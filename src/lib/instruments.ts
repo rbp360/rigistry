@@ -115,6 +115,20 @@ export async function suggestInstruments(opts: SuggestOptions): Promise<string[]
     const norm = normalizeName(item);
     if (!mergedSet.has(norm)) mergedSet.set(norm, item);
   }
+
+  // Always include amplifier/effect types for guitar-amp room and amplifiers-effects kind
+  if (room === 'guitar-amp' && kind === 'amplifiers-effects') {
+    const ampEffectKeywords = [
+      'amplifier', 'amp', 'head', 'combo', 'cabinet', 'pedal', 'effects', 'stomp', 'reverb', 'delay', 'distortion', 'overdrive', 'preamp', 'power amp', 'multi-effects', 'processor', 'modulation', 'fuzz', 'boost', 'equalizer', 'wah', 'tremolo', 'chorus', 'flanger', 'phaser', 'looper', 'noise gate', 'attenuator', 'switcher', 'footswitch', 'midi controller', 'expression pedal', 'volume pedal', 'tuner', 'buffer', 'splitter', 'isolator', 'simulator', 'cab sim', 'load box', 'direct box', 'interface'
+    ];
+    for (const item of baseList) {
+      const norm = normalizeName(item);
+      if (ampEffectKeywords.some(kw => norm.includes(kw))) {
+        if (!mergedSet.has(norm)) mergedSet.set(norm, item);
+      }
+    }
+  }
+
   const mergedList = Array.from(mergedSet.values());
   // Basic substring match
   const matched = mergedList.filter(item => item.toLowerCase().includes(q));

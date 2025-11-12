@@ -1,0 +1,29 @@
+Bass drum (Kick drum)
+Snare drum
+Hi-hat
+Rack tom
+Floor tom
+Tom-tom
+Rototom
+Ride cymbal
+Crash cymbal
+Splash cymbal
+China cymbal
+Cowbell
+Tambourine
+Shaker
+Wood block
+Claves
+Conga
+Bongo
+Timbale
+Gong
+Triangle
+Cajón
+Vibra-slap
+Bell tree
+Drum Module
+Drum rack
+Hit-hat stand
+Cymbal
+

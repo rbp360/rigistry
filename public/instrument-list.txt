@@ -1,3 +1,53 @@
+Media player
+Decks
+Turntable
+Controller
+Headphones
+Bass drum (Kick drum)
+Snare drum
+Hi-hat
+Rack tom
+Floor tom
+Tom-tom
+Rototom
+Ride cymbal
+Crash cymbal
+Splash cymbal
+China cymbal
+Cowbell
+Tambourine
+Shaker
+Wood block
+Claves
+Conga
+Bongo
+Timbale
+Gong
+Triangle
+Cajón
+Vibra-slap
+Bell tree
+Drum Module
+Drum rack
+Hit-hat stand
+Cymbal
+Effect pedal (singular)
+Effect pedal(multi)
+Amplifier head
+Amplifier (combo)
+Amplifier cabinet
+FRFR cabinet
+Moddler
+IR unit
+Other pedal
+Pedal board
+Floor board
+Power amplifier
+Pre-amplifier
+Rack unit
+Capture unit
+Attenuator
+Other
 accordina
 accordion
 algozey

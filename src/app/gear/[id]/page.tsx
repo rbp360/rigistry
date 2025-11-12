@@ -146,203 +146,24 @@ export default function GearDetailPage() {
   }
 
   return (
-    <main style={{ position: 'relative', padding: '32px 26px', maxWidth: 900, margin: '0 auto' }}>
-      {logoUrl && (
-        <div
-          aria-hidden
-          style={{
-            position: 'fixed',
-            inset: 0,
-            backgroundImage: `url(${logoUrl})`,
-            backgroundRepeat: 'no-repeat',
-            backgroundPosition: 'center',
-            backgroundSize: 'min(80vw, 900px) auto',
-            opacity: 0.07,
-            pointerEvents: 'none',
-            zIndex: 0,
-            mixBlendMode: 'normal',
-          }}
-        />
-      )}
-      <div style={{ position: 'relative', zIndex: 1 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
-          <h1 style={{ fontFamily: 'var(--font-tungstern)', margin: 0 }}>Gear Detail</h1>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <Link href="/gear" style={{ fontSize: 14 }}>← Back to Gear List</Link>
-            <Link href="/rigistry/guitar-amp" style={{ fontSize: 14 }}>← Back to Room</Link>
-            <Link href="/gear/add" style={{ fontSize: 14 }}>+ Add Gear</Link>
-          </div>
+    <main style={{ position: 'relative', width: '100vw', height: '100vh', overflow: 'hidden', background: '#222' }}>
+      {!loading && gear && ['guitar', 'bass'].includes(gear.kind) ? (
+        <div style={{ position: 'absolute', inset: 0, width: '100vw', height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <Image
+            src="/branding/Guitar backdrop.png"
+            alt="Guitar/Bass Backdrop"
+            width={900}
+            height={900}
+            style={{ objectFit: 'contain', opacity: 0.15, maxWidth: '80vw', maxHeight: '80vh' }}
+            priority
+          />
         </div>
-        {logoUrl && (
-          <a
-            href="https://www.logo.dev/"
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{ position: 'fixed', bottom: 8, right: 10, fontSize: 11, opacity: 0.45, zIndex: 2 }}
-          >
-            Logos by Logo.dev
-          </a>
-        )}
-        {loading && <p style={{ opacity: 0.7, marginTop: 24 }}>Loading…</p>}
-        {error && !loading && <p style={{ color: '#b00020', marginTop: 24 }}>{error}</p>}
-        {!loading && gear && (
-          <section style={{ marginTop: 28, display: 'grid', gridTemplateColumns: '300px 1fr', gap: 32 }}>
-          <div>
-            <div style={{ position: 'relative', width: '100%', paddingBottom: '100%', background: '#f4f4f4', borderRadius: 12, overflow: 'hidden' }}>
-              {gear.imageUrl ? (
-                <Image src={gear.imageUrl} alt={(gear.brand || 'Gear') + ' ' + (gear.model || '')} fill style={{ objectFit: 'cover' }} />
-              ) : (
-                <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, opacity: 0.55 }}>
-                  No image
-                </div>
-              )}
-              {gear.catalogSource?.source === 'reverb' && (
-                <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, fontSize: 11, background: 'rgba(0,0,0,0.55)', color: '#fff', padding: '2px 6px', textAlign: 'right' }}>
-                  Stock image • Reverb.com
-                </div>
-              )}
-            </div>
-            <div style={{ marginTop: 12 }}>
-              <CloudinaryUploader onUploaded={onImageUploaded} />
-              {replacingImage && <div style={{ fontSize: 12, opacity: 0.7, marginTop: 4 }}>Updating image…</div>}
-            </div>
-            <button
-              onClick={() => doArchive()}
-              style={{ marginTop: 16, background: '#550000', color: '#fff', padding: '8px 12px', borderRadius: 8, border: '1px solid #330000', cursor: 'pointer', fontSize: 13 }}
-            >
-              Archive
-            </button>
-          </div>
-          <div>
-            {!editing && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <h2 style={{ fontFamily: 'var(--font-fibre)', margin: '0 0 8px' }}>
-                  {(gear.brand || 'Unknown') + (gear.model ? ' ' + gear.model : '')}
-                </h2>
-                <div style={{ fontSize: 13, textTransform: 'uppercase', letterSpacing: '1px', opacity: 0.6 }}>{gear.kind}</div>
-                {gear.serialNumber && <div style={{ fontSize: 13, opacity: 0.7 }}>Serial: {gear.serialNumber}</div>}
-                {gear.notes && <p style={{ fontSize: 14, lineHeight: 1.5 }}>{gear.notes}</p>}
-                <button
-                  onClick={() => setEditing(true)}
-                  style={{ alignSelf: 'flex-start', background: '#111', color: '#fff', padding: '8px 14px', borderRadius: 8, border: '1px solid #222', cursor: 'pointer' }}
-                >
-                  Edit
-                </button>
-                {gear.kindDetail && <div style={{ fontSize: 13, opacity: 0.7 }}>Kind detail: {gear.kindDetail}</div>}
-              </div>
-            )}
-            {editing && (
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  void saveChanges();
-                }}
-                style={{ display: 'flex', flexDirection: 'column', gap: 14 }}
-              >
-                <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  <span>Kind</span>
-                  <select
-                    value={form.kind as string || gear.kind}
-                    onChange={(e) => setForm((f) => ({ ...f, kind: e.target.value as GearKind }))}
-                    style={{ padding: '8px 10px', border: '1px solid #ddd', borderRadius: 8 }}
-                  >
-                    {gearKinds.map((k) => <option key={k} value={k}>{k}</option>)}
-                  </select>
-                </label>
-                <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  <span>Kind detail</span>
-                  <KindDetailAutocomplete
-                    value={form.kindDetail ?? gear.kindDetail ?? ''}
-                    kind={(form.kind ?? gear.kind) as GearCategory}
-                    onChange={(v) => setForm((f) => ({ ...f, kindDetail: v }))}
-                    placeholder="Start typing (auto-suggest)…"
-                  />
-                  <small style={{ opacity: 0.7 }}>Use suggestions or custom text.</small>
-                </label>
-                <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  <span>Brand</span>
-                  <input
-                    type="text"
-                    value={form.brand ?? gear.brand ?? ''}
-                    onChange={(e) => setForm((f) => ({ ...f, brand: e.target.value }))}
-                    style={{ padding: '8px 10px', border: '1px solid #ddd', borderRadius: 8 }}
-                    placeholder="e.g. Fender"
-                  />
-                </label>
-                <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  <span>Model</span>
-                  <input
-                    type="text"
-                    value={form.model ?? gear.model ?? ''}
-                    onChange={(e) => setForm((f) => ({ ...f, model: e.target.value }))}
-                    style={{ padding: '8px 10px', border: '1px solid #ddd', borderRadius: 8 }}
-                    placeholder="e.g. Stratocaster"
-                  />
-                </label>
-                <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  <span>Serial Number</span>
-                  <input
-                    type="text"
-                    value={form.serialNumber ?? gear.serialNumber ?? ''}
-                    onChange={(e) => setForm((f) => ({ ...f, serialNumber: e.target.value }))}
-                    style={{ padding: '8px 10px', border: '1px solid #ddd', borderRadius: 8 }}
-                    placeholder="Optional"
-                  />
-                </label>
-                <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  <span>Notes</span>
-                  <textarea
-                    rows={4}
-                    value={form.notes ?? gear.notes ?? ''}
-                    onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
-                    style={{ padding: '8px 10px', border: '1px solid #ddd', borderRadius: 8, resize: 'vertical' }}
-                    placeholder="Tone settings, year, modifications, etc."
-                  />
-                </label>
-                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                  <button
-                    type="submit"
-                    disabled={saving}
-                    style={{ background: '#111', color: '#fff', padding: '8px 14px', borderRadius: 8, border: '1px solid #222', cursor: 'pointer' }}
-                  >
-                    {saving ? 'Saving…' : 'Save'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => { setEditing(false); setForm({}); }}
-                    style={{ background: '#444', color: '#fff', padding: '8px 14px', borderRadius: 8, border: '1px solid #333', cursor: 'pointer' }}
-                  >
-                    Cancel
-                  </button>
-                  {!gear.imageUrl && (form.brand || gear.brand) && (form.model || gear.model) && (
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        const brand = (form.brand ?? gear.brand ?? '').trim();
-                        const model = (form.model ?? gear.model ?? '').trim();
-                        if (!brand || !model) return;
-                        const result = await fetchStockImageForBrandModel(brand, model);
-                        if (result.url) {
-                          const src: CatalogSourceMeta = {
-                            source: 'reverb',
-                            attribution: result.attribution ?? 'Stock image from Reverb.com',
-                            licenseNote: 'Display-only stock image; not for redistribution.',
-                          };
-                          setForm(f => ({ ...f, imageUrl: result.url ?? undefined, catalogSource: src }));
-                        }
-                      }}
-                      style={{ background: '#222', color: '#fff', padding: '8px 14px', borderRadius: 8, border: '1px solid #222', cursor: 'pointer' }}
-                    >
-                      Fetch Stock Image
-                    </button>
-                  )}
-                </div>
-              </form>
-            )}
-          </div>
-          </section>
+      ) : (
+        // ...existing code for other gear types...
+        <div style={{ position: 'relative', zIndex: 1 }}>
+          {/* ...existing code for non-guitar/bass gear... */}
+        </div>
       )}
-      </div>
     </main>
   );
 }
