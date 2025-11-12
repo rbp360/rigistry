@@ -1,7 +1,7 @@
 'use client';
 
 import { useAuth } from '@/contexts/AuthContext';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useState } from 'react';
 import type { GearDoc, GearKind, GearCategory, CatalogSourceMeta } from '@/types/schema';
 import { GEAR_ADD_CATEGORIES } from '@/types/schema';
@@ -16,6 +16,11 @@ const kinds = GEAR_ADD_CATEGORIES;
 
 export default function AddGearPage() {
   const { user } = useAuth();
+  const pathname = usePathname();
+  // Determine back target: if under /rigistry/<room>/add go back to that room; otherwise to /rigistry
+  const backHref = pathname && pathname.startsWith('/rigistry/') && pathname.endsWith('/add')
+    ? pathname.replace(/\/add$/, '')
+    : '/rigistry';
   const [form, setForm] = useState<Partial<GearDoc>>({ kind: 'guitar' });
   const [saving, setSaving] = useState(false);
   const [fetchingImage, setFetchingImage] = useState(false);
@@ -62,6 +67,22 @@ export default function AddGearPage() {
 
   return (
     <main style={{ padding: 24, maxWidth: 800, margin: '0 auto' }}>
+      <div style={{ marginBottom: 12 }}>
+        <button
+          type="button"
+          onClick={() => {
+            if (typeof window !== 'undefined' && window.history.length > 1) {
+              router.back();
+            } else {
+              router.push(backHref);
+            }
+          }}
+          style={{ background: 'transparent', border: '1px solid #ddd', padding: '6px 10px', borderRadius: 8, cursor: 'pointer' }}
+          aria-label="Go back"
+        >
+          ← Back
+        </button>
+      </div>
       <h1 style={{ fontFamily: 'var(--font-tungstern)' }}>Add Gear</h1>
       <p>Add an instrument or accessory to your collection.</p>
 

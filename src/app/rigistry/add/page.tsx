@@ -3,6 +3,7 @@
 export const dynamic = 'force-dynamic';
 import { useAuth } from '@/contexts/AuthContext';
 import { useState, Suspense } from 'react';
+import { useRouter } from 'next/navigation';
 import type { GearDoc, GearKind, GearCategory, RoomKey } from '@/types/schema';
 import { GEAR_ADD_CATEGORIES, ROOM_SUGGESTIONS, ROOM_KIND_PRIORITIES, getOrderedCategoriesForRoom } from '@/types/schema';
 import { useSearchParams } from 'next/navigation';
@@ -33,6 +34,8 @@ function InnerAddPage() {
   const search = useSearchParams();
   const qpRoom = (search?.get('room') ?? '') as RoomKey | '';
   const qpKind = (search?.get('kind') ?? '') as GearCategory | '';
+  const router = useRouter();
+  const backHref = qpRoom ? `/rigistry/${qpRoom}` : '/rigistry';
   const initialRoom: string | undefined = qpRoom && rooms.some(r => r.key === qpRoom) ? qpRoom : undefined;
   const initialKind: GearCategory | undefined = qpKind && GEAR_ADD_CATEGORIES.some(c => c.value === qpKind)
     ? qpKind
@@ -88,6 +91,22 @@ function InnerAddPage() {
 
   return (
     <main style={{ padding: 24, maxWidth: 800, margin: '0 auto' }}>
+      <div style={{ marginBottom: 12 }}>
+        <button
+          type="button"
+          onClick={() => {
+            if (typeof window !== 'undefined' && window.history.length > 1) {
+              router.back();
+            } else {
+              router.push(backHref);
+            }
+          }}
+          style={{ background: 'transparent', border: '1px solid #ddd', padding: '6px 10px', borderRadius: 8, cursor: 'pointer' }}
+          aria-label="Go back"
+        >
+          ← Back
+        </button>
+      </div>
       <h1 style={{ fontFamily: 'var(--font-tungstern)' }}>Add Gear</h1>
       <div style={{ marginBottom: 18 }}>
         <div style={{ padding: '10px 12px', border: '1px solid #eee', borderRadius: 10, background: '#fff' }}>

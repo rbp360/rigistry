@@ -1,8 +1,11 @@
 import type { NextConfig } from "next";
+import path from 'path';
 
 const nextConfig: NextConfig = {
   reactCompiler: true,
   reactStrictMode: true,
+  // Explicitly set the monorepo root to silence workspace root warnings
+  outputFileTracingRoot: path.join(__dirname, '..'),
   images: {
     remotePatterns: [
       {
