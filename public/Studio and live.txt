@@ -1,0 +1,108 @@
+Audio Interface  
+Microphone  
+Preamp  
+Compressor / Limiter  
+Equalizer (EQ)  
+Channel Strip  
+Monitoring  
+DAW Controller / Control Surface  
+MIDI Controller   
+Outboard Effects  
+DI box
+Power Conditioner  
+Patchbay  
+Acoustic Treatment  
+Studio Furniture  
+Cables 
+Recording Media / Storage  
+Clocks & Converters  
+Computer / Workstation  
+Software
+
+Mixing Console  
+Stage Monitor  
+Power Amplifier  
+Crossover / Speaker Management  
+Wireless Microphone System  
+Microphone  
+IEM (In-Ear Monitor System)  
+Stage Box / Snake  
+Audio Interface  
+DI Box  
+Outboard Processor 
+Lighting Controller  
+Stage Lighting Fixture  
+Fog / Haze Machine  
+Power Distribution Unit  
+Stage Cable / Multicore  
+Rack Case / Road Case  
+Speaker Stand / Mount  
+Mic Stand / Boom Arm  
+Stage Box  
+Stage Power Supply / Conditioner  
+Monitor Controller  
+Stage Drum Shield / Acoustic Panel  
+Front of House Speaker  
+Subwoofer  
+Fill Speaker  
+Monitor / Foldback Speaker  
+Side fill
+Delay Tower  
+Point Source Speaker  
+Line Array  
+Curved Array  
+Column Array  
+Cardioid Subwoofer Array  
+Active / Powered Speaker  
+Passive Speaker  
+Flown Array  
+Ground-Stacked Array  
+
+
+Spotlight  
+Fresnel  
+Par Can  
+Profile / Ellipsoidal (ERS)  
+Floodlight  
+Blinder  
+Strobe Light  
+Moving Head Spot  
+Moving Head Wash  
+Moving Head Beam  
+Hybrid Moving Head  
+LED PAR / LED Wash  
+LED Bar / Strip  
+Pixel Batten / Pixel Bar  
+COB Light  
+Pinspot  
+Blacklight / UV Fixture  
+Laser Projector  
+Gobo Projector  
+Fog Machine  
+Hazer  
+Fazer  
+Snow Machine  
+Bubble Machine  
+Confetti / CO₂ / Flame System  
+Lighting Console / Controller  
+DMX Controller  
+DMX Splitter / Booster  
+Art-Net / sACN Node  
+Dimmers / Relay Packs  
+Wireless DMX System  
+Lighting Truss  
+Lighting Stand / T-Bar  
+Clamp / Coupler  
+Safety Cable  
+Winch / Hoist / Chain Motor  
+Rigging Hardware / Accessories  
+Power Distribution Unit  
+DMX Cable  
+Power Cable  
+Socapex Breakout / Fanout  
+Power Conditioner  
+LED Panel / Matrix  
+LED Tape / Strip Light  
+Architectural LED Fixture  
+Media Server
+

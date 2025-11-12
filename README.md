@@ -20,17 +20,44 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
-## Learn More
+## Gear Kind Detail Autocomplete
 
-To learn more about Next.js, take a look at the following resources:
+The Add Gear forms (`/gear/add`, `/rigistry/add`) and the gear edit page use an autocomplete for the **Kind detail** field. This lets you quickly select specific instruments (e.g. "electric guitar", "alto saxophone") or studio/live equipment (e.g. "Audio Interface", "Line Array").
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Data Sources
+1. `public/instrument-list.txt` – large base list of instruments.
+2. Curated room lists – additional context-specific items for certain rooms (drum, control, stage) defined in `src/lib/instruments.ts`.
+3. Common instruments list – high-frequency items hard-boosted to appear first whenever they match.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Ranking Precedence (highest first)
+1. Room-curated matches (e.g. "snare drum" in Drum room, "Audio Interface" in Control room, "Line Array" on Stage).
+2. Global common instruments (provided list like "electric guitar", "saxophone").
+3. Text starts-with query match.
+4. Category match (current selected top-level Gear kind).
+5. Room priority category alignment (if not already matched above).
+6. Length proximity for tie-breaking.
 
-## Deploy on Vercel
+### Category Heuristics
+The helper `categorizeInstrument()` uses keyword tables to infer a `GearCategory` from the entered string. Keywords include extended studio and live terms (e.g. `patchbay`, `line array`, `control surface`).
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Curated Room Items
+Room-specific lists are merged into the suggestion pool even if they are not present in the base instrument list:
+* Drum: core drum set components + auxiliary percussion.
+* Control (studio): recording & mixing equipment (interfaces, preamps, outboard, acoustic treatment, etc.).
+* Stage (live): full live sound reinforcement, monitoring, lighting, rigging and power distribution.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Extensibility
+* To add or adjust curated items, edit `CURATED_ROOM_INSTRUMENTS` in `src/lib/instruments.ts`.
+* To refine categorization, update `CATEGORY_KEYWORDS` (add keywords or new categories if taxonomy expands).
+* Future (planned): dynamic frequency-based boost (TODO left in code) using saved Gear documents to elevate most-used kind details.
+
+### Fallback Behavior
+If no suggestion fits, the user's custom text is kept verbatim; there is no forced selection. This allows logging niche or bespoke equipment.
+
+### Performance Notes
+Instrument list fetch is cached in-memory per session; subsequent queries are filtered client-side with a light debounce (180ms) for responsiveness.
+
+### Contributing
+Please keep additions to curated lists concise, canonical, and singular (avoid duplicates differing only by punctuation). When necessary, place synonyms directly in the keyword arrays rather than duplicating curated entries.
+
+---
