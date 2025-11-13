@@ -1,5 +1,24 @@
 .rigistryMain {
   padding: 2rem;
+  min-height: 100vh;
+  /* Full screen backdrop */
+  /* Updated backdrop to use branding/logo1.png */
+  background: url('/branding/logo1.png') center/contain no-repeat fixed, #000;
+  /* Overlay for readability */
+  position: relative;
+}
+
+.rigistryMain::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.55); /* darken backdrop */
+  pointer-events: none;
+}
+
+.rigistryMain > * {
+  position: relative; /* ensure children appear above overlay */
+  z-index: 1;
 }
 
 .roomsGrid {

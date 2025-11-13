@@ -6,6 +6,7 @@ import { listGearByOwner } from '@/lib/db';
 import type { GearDoc, RoomKey } from '@/types/schema';
 import Image from 'next/image';
 import { useToast } from '@/contexts/ToastContext';
+import { buildLogoDevImageUrl } from '@/lib/logoDev';
 
 export default function RoomGearList({ room }: { room: RoomKey }) {
   const { user } = useAuth();
@@ -52,11 +53,11 @@ export default function RoomGearList({ room }: { room: RoomKey }) {
         <div key={g.id} style={{ position: 'relative' }}>
           <a href={`/gear/${g.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
             <div style={{ border: '1px solid #ddd', borderRadius: 8, padding: 12, background: '#fafafa', cursor: 'pointer', transition: 'box-shadow 0.2s', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}>
-              {g.imageUrl ? (
-                <Image src={g.imageUrl} alt={g.brand || 'Gear'} width={120} height={120} style={{ borderRadius: 6 }} />
-              ) : (
-                <div style={{ width: 120, height: 120, background: '#eee', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#888' }}>No image</div>
-              )}
+              {(() => {
+                const fallback = g.brand ? buildLogoDevImageUrl(g.brand, { source: 'name', format: 'png', size: 256, retina: true, theme: 'light' }) : '/branding/logo1.png';
+                const src = g.imageUrl || fallback;
+                return <Image src={src} alt={g.brand || 'Gear'} width={120} height={120} style={{ borderRadius: 6, objectFit: 'cover' }} />;
+              })()}
               <div style={{ marginTop: 8 }}>
                 <strong>{g.brand || 'Unknown'} {g.model || ''}</strong>
                 <div style={{ fontSize: 13, opacity: 0.7 }}>{g.kind}</div>

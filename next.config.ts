@@ -36,6 +36,11 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: 'logo.dev',
       },
+      // Allow img.logo.dev (API render host used by buildLogoDevImageUrl)
+      {
+        protocol: 'https',
+        hostname: 'img.logo.dev',
+      },
     ],
   },
   experimental: {
