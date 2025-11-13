@@ -4,7 +4,7 @@ import type { GearDoc } from '@/types/schema';
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
-import { buildLogoDevImageUrl } from '@/lib/logoDev';
+// Removed logo.dev fallback in favor of server-scraped brand logos
 
 export default function GearDetailPage() {
   const params = useParams();
@@ -50,21 +50,9 @@ export default function GearDetailPage() {
             setError('This gear item has been archived.');
           }
           setGear(mapped);
-          // Compute logo watermark URL when brand is present
+          // Compute logo watermark URL when brand is present using our API
           if (mapped.brand) {
-            try {
-              setLogoUrl(
-                buildLogoDevImageUrl(mapped.brand, {
-                  source: 'name',
-                  format: 'png',
-                  size: 800,
-                  retina: true,
-                  theme: 'light',
-                })
-              );
-            } catch {
-              setLogoUrl(null);
-            }
+            setLogoUrl(`/api/brand-logo?brand=${encodeURIComponent(mapped.brand)}`);
           } else {
             setLogoUrl(null);
           }

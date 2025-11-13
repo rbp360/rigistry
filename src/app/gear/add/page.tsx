@@ -183,18 +183,34 @@ export default function AddGearPage() {
             <div style={{ display: 'flex', gap: 8 }}>
               <button
                 type="button"
-                disabled={fetchingImage || !form.brand || !form.model}
+                disabled={fetchingImage || !form.brand}
                 onClick={async () => {
-                  if (!form.brand || !form.model) return;
+                  if (!form.brand) return;
                   setFetchingImage(true);
-                  const result = await fetchStockImageForBrandModel(form.brand, form.model, form.color);
-                  if (result.url) {
+                  let usedFallback = false;
+                  if (form.model) {
+                    const result = await fetchStockImageForBrandModel(form.brand, form.model, form.color);
+                    if (result.url) {
+                      const src: CatalogSourceMeta = {
+                        source: 'reverb',
+                        attribution: result.attribution ?? 'Stock image from Reverb.com',
+                        licenseNote: 'Display-only stock image; not for redistribution.',
+                      };
+                      setForm(f => ({ ...f, imageUrl: result.url || undefined, catalogSource: src }));
+                    } else {
+                      usedFallback = true;
+                    }
+                  } else {
+                    usedFallback = true;
+                  }
+                  if (usedFallback && form.brand) {
+                    const logoUrl = `/api/brand-logo?brand=${encodeURIComponent(form.brand)}`;
                     const src: CatalogSourceMeta = {
-                      source: 'reverb',
-                      attribution: result.attribution ?? 'Stock image from Reverb.com',
-                      licenseNote: 'Display-only stock image; not for redistribution.',
+                      source: 'guitar-list',
+                      attribution: 'Logo from guitar-list.com',
+                      licenseNote: 'Logo used with permission via guitar-list.com; display-only.',
                     };
-                    setForm(f => ({ ...f, imageUrl: result.url || undefined, catalogSource: src }));
+                    setForm(f => ({ ...f, imageUrl: logoUrl, catalogSource: src }));
                   }
                   setFetchingImage(false);
                 }}
@@ -202,7 +218,7 @@ export default function AddGearPage() {
               >
                 {fetchingImage ? 'Fetching image…' : 'Fetch Stock Image'}
               </button>
-              <small style={{ alignSelf: 'center', opacity: 0.6 }}>Uses Reverb API; falls back to logo if no match.</small>
+              <small style={{ alignSelf: 'center', opacity: 0.6 }}>Uses Reverb (if model provided); otherwise falls back to guitar-list brand logo.</small>
             </div>
           )}
           {form.imageUrl && (
@@ -211,6 +227,9 @@ export default function AddGearPage() {
           )}
           {form.catalogSource?.source === 'reverb' && (
             <div style={{ fontSize: 11, opacity: 0.7 }}>Stock image from Reverb.com</div>
+          )}
+          {form.catalogSource?.source === 'guitar-list' && (
+            <div style={{ fontSize: 11, opacity: 0.7 }}>Logo from guitar-list.com</div>
           )}
         </div>
 

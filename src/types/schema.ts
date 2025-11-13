@@ -202,7 +202,8 @@ export interface PresetLinkDoc {
 
 // Catalog data provenance for licensing/attribution audits
 export interface CatalogSourceMeta {
-  source: 'equipboard' | 'effectsdb' | 'guitarpedaldb' | 'user' | 'reverb' | 'logo-dev';
+  // Include 'guitar-list' for brand logo fallback; keep 'logo-dev' for backward compatibility
+  source: 'equipboard' | 'effectsdb' | 'guitarpedaldb' | 'user' | 'reverb' | 'guitar-list' | 'logo-dev';
   externalId?: string; // ID from upstream source
   attribution?: string; // required attribution string
   licenseNote?: string; // summary of licensing constraints

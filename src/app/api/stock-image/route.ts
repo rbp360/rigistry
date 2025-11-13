@@ -11,11 +11,9 @@ const REVERB_TOKEN = process.env.REVERB_API_TOKEN;
 const recentCalls = new Map<string, number>();
 const THROTTLE_MS = 2500;
 
-// Logo.dev simple endpoint (hypothetical) – adjust if real API differs
-function logoDevUrl(brand: string) {
-  // Use canonical brand (already resolved before calling) for path encoding
-  const clean = brand.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-  return `https://logo.dev/api/logo/${clean}`;
+// Fallback to guitar-list brand logo via our internal scraper route
+function guitarListLogoUrl(brand: string) {
+  return `/api/brand-logo?brand=${encodeURIComponent(brand)}`;
 }
 
 function scoreTitle(title: string, brand: string, model: string): number {
@@ -102,15 +100,15 @@ async function tryReverb(brand: string, model: string) {
   }
 }
 
-async function tryLogoDev(brand: string) {
+async function tryGuitarList(brand: string) {
   if (!brand) return null;
   const canonical = resolveCanonicalBrand(brand);
-  if (!canonical) return null; // strict: only serve logos for intentional known brands
+  if (!canonical) return null; // only serve logos for recognized brands to avoid bad guesses
   return {
-    url: logoDevUrl(canonical),
-    attribution: `Logo for ${canonical}`,
-    source: 'logo.dev' as const,
-    licenseNote: 'Logo fetched from logo.dev; verify trademark usage guidelines.',
+    url: guitarListLogoUrl(canonical),
+    attribution: 'Logo from guitar-list.com',
+    source: 'guitar-list' as const,
+    licenseNote: 'Logo used with permission via guitar-list.com; display-only.',
   };
 }
 
@@ -139,8 +137,8 @@ export async function GET(req: Request) {
     return NextResponse.json(reverbResult, { status: 200 });
   }
 
-  // 2) Fallback to logo.dev (brand only, strict canonical match). If brand missing, attempt first token of model.
-  const fallback = await tryLogoDev(brand || (model.split(' ')[0] || ''));
+  // 2) Fallback to guitar-list brand logo (brand only, strict canonical match). If brand missing, attempt first token of model.
+  const fallback = await tryGuitarList(brand || (model.split(' ')[0] || ''));
   if (fallback) {
     return NextResponse.json({ ...fallback, reverbDebug: reverbResult }, { status: 200 });
   }
