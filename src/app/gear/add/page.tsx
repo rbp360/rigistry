@@ -9,6 +9,7 @@ import CloudinaryUploader from '@/components/CloudinaryUploader';
 import { createGearItem } from '@/lib/db';
 import { fetchStockImageForBrandModel } from '@/lib/reverb';
 import KindDetailAutocomplete from '@/components/KindDetailAutocomplete';
+import BrandAutocomplete from '@/components/BrandAutocomplete';
 import { useToast } from '@/contexts/ToastContext';
 
 // Use the 20 product categories for kind selection in Add Gear
@@ -117,13 +118,13 @@ export default function AddGearPage() {
 
         <label style={{ display: 'grid', gap: 6 }}>
           <span>Brand</span>
-          <input
-            type="text"
+          <BrandAutocomplete
             value={form.brand ?? ''}
-            onChange={(e) => setForm((f) => ({ ...f, brand: e.target.value }))}
-            placeholder="Fender, Gibson, Boss…"
-            style={{ padding: '8px 10px', border: '1px solid #ddd', borderRadius: 8 }}
+            category={form.kind as string}
+            onChange={(v) => setForm((f) => ({ ...f, brand: v }))}
+            placeholder="Start typing (autocomplete)…"
           />
+          <small style={{ opacity: 0.6 }}>Searches curated manufacturer lists (category-specific when available).</small>
         </label>
 
         <label style={{ display: 'grid', gap: 6 }}>

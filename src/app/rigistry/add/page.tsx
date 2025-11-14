@@ -13,6 +13,7 @@ import { fetchStockImageForBrandModel } from '@/lib/reverb';
 import type { CatalogSourceMeta } from '@/types/schema';
 import KindDetailAutocomplete from '@/components/KindDetailAutocomplete';
 import { useToast } from '@/contexts/ToastContext';
+import BrandAutocomplete from '@/components/BrandAutocomplete';
 
 // Updated to use 20 unified product categories for gear kind selection (ordered per room via helper)
 const rooms = [
@@ -161,7 +162,13 @@ function InnerAddPage() {
         </label>
         <label style={{ display: 'grid', gap: 6 }}>
           <span>Brand</span>
-          <input type="text" value={form.brand ?? ''} onChange={e => setForm(f => ({ ...f, brand: e.target.value }))} placeholder="Fender, Gibson, Boss…" style={{ padding: '8px 10px', border: '1px solid #ddd', borderRadius: 8 }} />
+          <BrandAutocomplete
+            value={form.brand ?? ''}
+            category={form.kind as string}
+            onChange={(v) => setForm(f => ({ ...f, brand: v }))}
+            placeholder="Start typing (autocomplete)…"
+          />
+          <small style={{ opacity: 0.6 }}>Searches curated manufacturer lists (category-specific when available).</small>
         </label>
         <label style={{ display: 'grid', gap: 6 }}>
           <span>Model</span>
