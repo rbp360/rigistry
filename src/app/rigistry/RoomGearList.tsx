@@ -4,9 +4,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useEffect, useState } from 'react';
 import { listGearByOwner } from '@/lib/db';
 import type { GearDoc, RoomKey } from '@/types/schema';
-import Image from 'next/image';
+// import Image from 'next/image'; // no longer needed after normalization
 import { useToast } from '@/contexts/ToastContext';
-import { buildLogoDevImageUrl } from '@/lib/logoDev';
+// Removed logo.dev fallback to keep image selection identical to gear detail view
 
 export default function RoomGearList({ room }: { room: RoomKey }) {
   const { user } = useAuth();
@@ -54,19 +54,21 @@ export default function RoomGearList({ room }: { room: RoomKey }) {
           <a href={`/gear/${g.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
             <div style={{ border: '1px solid #ddd', borderRadius: 8, padding: 12, background: '#fafafa', cursor: 'pointer', transition: 'box-shadow 0.2s', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}>
               {(() => {
-                const fallback = g.brand ? buildLogoDevImageUrl(g.brand, { source: 'name', format: 'png', size: 256, retina: true, theme: 'light' }) : '/branding/logo1.png';
-                const src = g.imageUrl || fallback;
+                const brandLogo = g.brand ? `/api/brand-logo?brand=${encodeURIComponent(g.brand)}` : null;
+                const src = g.imageUrl || brandLogo || '/branding/logo1.png';
                 return (
-                  <Image
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
                     src={src}
                     alt={g.brand || 'Gear'}
                     width={120}
                     height={120}
-                    style={{ borderRadius: 6, objectFit: 'cover' }}
+                    style={{ borderRadius: 6, objectFit: 'cover', display: 'block', background: '#111' }}
                     onError={(e) => {
-                      const img = e.currentTarget as unknown as HTMLImageElement;
-                      if (!img || img.src.endsWith('/branding/logo1.png')) return;
-                      img.src = '/branding/logo1.png';
+                      const img = e.currentTarget as HTMLImageElement;
+                      if (!img.src.endsWith('/branding/logo1.png')) {
+                        img.src = '/branding/logo1.png';
+                      }
                     }}
                   />
                 );

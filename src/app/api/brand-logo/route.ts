@@ -86,6 +86,7 @@ async function findLogoUrl(html: string, pageUrl: string, brand: string) {
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const brandRaw = (searchParams.get('brand') || '').trim();
+  const debug = ['1', 'true', 'yes'].includes((searchParams.get('debug') || '').toLowerCase());
   if (!brandRaw) {
     return NextResponse.json({ error: 'brand required' }, { status: 400 });
   }
@@ -109,6 +110,43 @@ export async function GET(req: NextRequest) {
 
   const html = await pageRes.text();
   const logoUrl = await findLogoUrl(html, pageUrl, brandRaw);
+
+  if (debug) {
+    // Recompute candidate list with scores for transparency
+    const $ = cheerio.load(html);
+    const brandLower = brandRaw.toLowerCase();
+    const candidates: { src: string; score: number }[] = [];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    $('img').each((_: number, el: any) => {
+      const src = $(el).attr('src') || '';
+      const alt = ($(el).attr('alt') || '').toLowerCase();
+      const title = ($(el).attr('title') || '').toLowerCase();
+      const srcL = src.toLowerCase();
+      const looksLikeLogo = alt.includes('logo') || title.includes('logo') || srcL.includes('logo') || alt.includes(brandLower);
+      if (looksLikeLogo) {
+        const score =
+          (/\.(svg|png)$/i.test(src) ? 5 : 0) +
+          (srcL.includes('brand') ? 2 : 0) +
+          (srcL.includes(brandLower) ? 2 : 0) +
+          (srcL.includes('logo') ? 3 : 0);
+        candidates.push({ src, score });
+      }
+    });
+    candidates.sort((a, b) => b.score - a.score);
+    return NextResponse.json(
+      {
+        brand: brandRaw,
+        slug,
+        override: override || null,
+        pageUrl,
+        pageStatus: pageRes.status,
+        logoUrl: logoUrl || null,
+        candidates: candidates.slice(0, 15),
+        candidateTotal: candidates.length,
+      },
+      { status: logoUrl ? 200 : 404 }
+    );
+  }
 
   if (!logoUrl) {
     return NextResponse.json({ error: 'logo not found' }, { status: 404 });

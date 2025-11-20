@@ -1,8 +1,34 @@
+
 'use client';
 
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter, usePathname } from 'next/navigation';
-import { useState } from 'react';
+type ImagePreviewWithErrorProps = {
+  src: string;
+  alt: string;
+  onError: () => void;
+};
+
+function ImagePreviewWithError({ src, alt, onError }: ImagePreviewWithErrorProps) {
+  const [errored, setErrored] = useState(false);
+  useEffect(() => { setErrored(false); }, [src]);
+  return (
+    <div style={{ display: 'grid', gap: 6 }}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={src}
+        alt={alt}
+        style={{ maxWidth: 320, borderRadius: 8 }}
+        onError={() => { setErrored(true); onError(); }}
+      />
+      {errored && (
+        <div style={{ color: '#c00', fontSize: 13 }}>Image failed to load. You can fetch a stock image or upload manually.</div>
+      )}
+    </div>
+  );
+}
+
 import type { GearDoc, GearKind, GearCategory, CatalogSourceMeta } from '@/types/schema';
 import { GEAR_ADD_CATEGORIES } from '@/types/schema';
 import CloudinaryUploader from '@/components/CloudinaryUploader';
@@ -22,10 +48,28 @@ export default function AddGearPage() {
   const backHref = pathname && pathname.startsWith('/rigistry/') && pathname.endsWith('/add')
     ? pathname.replace(/\/add$/, '')
     : '/rigistry';
+  // Read query params for pre-fill
   const [form, setForm] = useState<Partial<GearDoc>>({ kind: 'guitar' });
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const updates: Partial<GearDoc> = {};
+      if (params.get('kind')) updates.kind = params.get('kind') as GearKind;
+      if (params.get('kindDetail')) updates.kindDetail = params.get('kindDetail') || undefined;
+      if (params.get('brand')) updates.brand = params.get('brand') || undefined;
+      if (params.get('model')) updates.model = params.get('model') || undefined;
+      if (params.get('serialNumber')) updates.serialNumber = params.get('serialNumber') || undefined;
+      if (params.get('color')) updates.color = params.get('color') || undefined;
+      if (params.get('notes')) updates.notes = params.get('notes') || undefined;
+      if (params.get('imageUrl')) updates.imageUrl = params.get('imageUrl') || undefined;
+      // Only update if any present
+      if (Object.keys(updates).length > 0) setForm(f => ({ ...f, ...updates }));
+    }
+  }, []);
   const [saving, setSaving] = useState(false);
   const [fetchingImage, setFetchingImage] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [imagePick, setImagePick] = useState(0); // index into alternate Reverb listings
   const { addToast } = useToast();
 
   const router = useRouter();
@@ -180,52 +224,61 @@ export default function AddGearPage() {
               addToast({ type: 'success', message: 'Image uploaded', title: 'Upload Complete' });
             }}
           />
-          {!form.imageUrl && (
+          {(!form.imageUrl || form.imageUrl === '') && (
             <div style={{ display: 'flex', gap: 8 }}>
-              <button
-                type="button"
-                disabled={fetchingImage || !form.brand}
-                onClick={async () => {
-                  if (!form.brand) return;
-                  setFetchingImage(true);
-                  let usedFallback = false;
-                  if (form.model) {
-                    const result = await fetchStockImageForBrandModel(form.brand, form.model, form.color);
-                    if (result.url) {
-                      const src: CatalogSourceMeta = {
-                        source: 'reverb',
-                        attribution: result.attribution ?? 'Stock image from Reverb.com',
-                        licenseNote: 'Display-only stock image; not for redistribution.',
-                      };
-                      setForm(f => ({ ...f, imageUrl: result.url || undefined, catalogSource: src }));
+              {!form.imageUrl && (
+                <button
+                  type="button"
+                  disabled={fetchingImage || !form.brand}
+                  onClick={async () => {
+                    if (!form.brand) return;
+                    setFetchingImage(true);
+                    setImagePick(0);
+                    let usedFallback = false;
+                    if (form.model) {
+                      const result = await fetchStockImageForBrandModel(form.brand, form.model, form.color, 0);
+                      if (result.url) {
+                        const src: CatalogSourceMeta = {
+                          source: 'reverb',
+                          attribution: result.attribution ?? 'Stock image from Reverb.com',
+                          licenseNote: 'Display-only stock image; not for redistribution.',
+                        };
+                        setForm(f => ({ ...f, imageUrl: result.url || undefined, catalogSource: src }));
+                      } else {
+                        usedFallback = true;
+                      }
                     } else {
                       usedFallback = true;
                     }
-                  } else {
-                    usedFallback = true;
-                  }
-                  if (usedFallback && form.brand) {
-                    const logoUrl = `/api/brand-logo?brand=${encodeURIComponent(form.brand)}`;
-                    const src: CatalogSourceMeta = {
-                      source: 'guitar-list',
-                      attribution: 'Logo from guitar-list.com',
-                      licenseNote: 'Logo used with permission via guitar-list.com; display-only.',
-                    };
-                    setForm(f => ({ ...f, imageUrl: logoUrl, catalogSource: src }));
-                  }
-                  setFetchingImage(false);
-                }}
-                style={{ background: '#222', color: '#fff', padding: '6px 12px', borderRadius: 6, fontSize: 13, border: '1px solid #333', cursor: 'pointer' }}
-              >
-                {fetchingImage ? 'Fetching image…' : 'Fetch Stock Image'}
-              </button>
+                    if (usedFallback && form.brand) {
+                      const logoUrl = `/api/brand-logo?brand=${encodeURIComponent(form.brand)}`;
+                      const src: CatalogSourceMeta = {
+                        source: 'guitar-list',
+                        attribution: 'Logo from guitar-list.com',
+                        licenseNote: 'Logo used with permission via guitar-list.com; display-only.',
+                      };
+                      setForm(f => ({ ...f, imageUrl: logoUrl, catalogSource: src }));
+                    }
+                    setFetchingImage(false);
+                  }}
+                  style={{ background: '#222', color: '#fff', padding: '6px 12px', borderRadius: 6, fontSize: 13, border: '1px solid #333', cursor: 'pointer' }}
+                >
+                  {fetchingImage ? 'Fetching image…' : 'Fetch Stock Image'}
+                </button>
+              )}
               <small style={{ alignSelf: 'center', opacity: 0.6 }}>Uses Reverb (if model provided); otherwise falls back to guitar-list brand logo.</small>
             </div>
           )}
           {form.imageUrl && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={form.imageUrl} alt="preview" style={{ maxWidth: 320, borderRadius: 8 }} />
+            <ImagePreviewWithError
+              src={form.imageUrl}
+              alt="preview"
+              onError={() => setForm(f => ({ ...f, imageUrl: undefined }))}
+            />
           )}
+
+// ...existing code...
+
           {form.catalogSource?.source === 'reverb' && (
             <div style={{ fontSize: 11, opacity: 0.7 }}>Stock image from Reverb.com</div>
           )}
@@ -235,9 +288,16 @@ export default function AddGearPage() {
         </div>
 
         <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-          <button type="submit" disabled={!user || saving} style={{ background: '#111', color: '#fff', padding: '8px 14px', borderRadius: 8, border: '1px solid #222', cursor: 'pointer' }}>
+          <button
+            type="submit"
+            disabled={!user || saving || fetchingImage}
+            style={{ background: '#111', color: '#fff', padding: '8px 14px', borderRadius: 8, border: '1px solid #222', cursor: 'pointer' }}
+          >
             {saving ? 'Saving…' : 'Save gear'}
           </button>
+          {fetchingImage && form.imageUrl && (
+            <span style={{ color: '#c00', fontSize: 13 }}>Please wait for image to finish processing.</span>
+          )}
           {message && <span>{message}</span>}
         </div>
       </form>

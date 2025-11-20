@@ -26,7 +26,7 @@ function scoreTitle(title: string, brand: string, model: string): number {
   return score;
 }
 
-async function tryReverb(brand: string, model: string) {
+async function tryReverb(brand: string, model: string, pickIndex: number = 0) {
   if (!REVERB_TOKEN) return { error: 'missing-token' }; // no token configured
   try {
     const query = `${brand} ${model}`.trim();
@@ -70,22 +70,24 @@ async function tryReverb(brand: string, model: string) {
           type Listing = { title?: string; photos?: Array<{ _links?: { large?: { href: string }, full?: { href: string } } }> };
           const listings: Listing[] = Array.isArray(dataJson?.listings) ? (dataJson.listings as Listing[]) : [];
           if (!listings.length) continue; // try next combo
-          const best = listings
+          const scored = listings
             .map((l) => ({ l, s: scoreTitle(String(l?.title ?? ''), brand, model) }))
-            .sort((a, b) => b.s - a.s)[0]?.l ?? listings[0];
-          const photo = best?.photos?.[0]?._links as
+            .sort((a, b) => b.s - a.s);
+          const chosen = scored[Math.min(pickIndex, scored.length - 1)]?.l ?? scored[0]?.l ?? listings[0];
+          const photo = chosen?.photos?.[0]?._links as
             | { large?: { href: string }; full?: { href: string }; medium?: { href: string }; thumbnail?: { href: string } }
             | undefined;
           const href = photo?.large?.href || photo?.full?.href || photo?.medium?.href || photo?.thumbnail?.href || null;
           if (!href) continue; // try next combo
           return {
             url: href,
-            attribution: best?.title ? `Photo: Reverb.com – ${best.title}` : 'Photo: Reverb.com',
+            attribution: chosen?.title ? `Photo: Reverb.com – ${chosen.title}` : 'Photo: Reverb.com',
             source: 'reverb' as const,
             licenseNote: 'Usage limited to display inside application; not for redistribution.',
             attempts,
             auth: a.kind,
             chosenPath: p.path,
+            pickIndex,
           };
         } catch (err) {
           attempts.push({ url: p.url, auth: a.kind, path: p.path, body: err instanceof Error ? err.message : String(err) });
@@ -117,13 +119,15 @@ export async function GET(req: Request) {
   const brand = searchParams.get('brand') || '';
   const model = searchParams.get('model') || '';
   const color = searchParams.get('color') || '';
+  const pickRaw = searchParams.get('pick');
+  const pickIndex = pickRaw ? Math.max(0, Math.min(25, Number.parseInt(pickRaw))) : 0;
 
   if (!brand && !model) {
     return NextResponse.json({ error: 'Missing query' }, { status: 400 });
   }
 
   // throttle per key
-  const key = `${brand}|${model}`.toLowerCase();
+  const key = `${brand}|${model}|${pickIndex}`.toLowerCase();
   const now = Date.now();
   const prev = recentCalls.get(key) ?? 0;
   if (now - prev < THROTTLE_MS) {
@@ -132,7 +136,7 @@ export async function GET(req: Request) {
   recentCalls.set(key, now);
 
   // 1) Try Reverb API (if token present)
-  const reverbResult = await tryReverb(brand + (color ? ` ${color}` : ''), model);
+  const reverbResult = await tryReverb(brand + (color ? ` ${color}` : ''), model, pickIndex);
   if (reverbResult && 'url' in reverbResult && reverbResult.url) {
     return NextResponse.json(reverbResult, { status: 200 });
   }
