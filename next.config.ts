@@ -42,6 +42,11 @@ const nextConfig: NextConfig = {
         hostname: 'img.logo.dev',
       },
     ],
+    // Allow all local image paths (covers /branding/** and /api/* query images)
+    // If you want to tighten later, restrict to specific subpaths.
+    localPatterns: [
+      { pathname: '/**' },
+    ],
   },
   experimental: {
     webpackBuildWorker: true,

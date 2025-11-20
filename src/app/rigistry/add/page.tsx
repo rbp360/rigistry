@@ -78,8 +78,9 @@ function InnerAddPage() {
         room: form.room,
       });
       if (saved) {
-        setMessage('Gear saved!');
-        addToast({ type: 'success', title: 'Gear Added', message: `${saved.brand || 'Gear'} ${saved.model || ''} created.` });
+        // Navigate directly to the item's home page instead of showing a success message
+        router.replace(`/gear/${saved.id}`);
+        return;
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to save gear';

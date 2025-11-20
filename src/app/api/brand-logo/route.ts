@@ -5,7 +5,28 @@ export const runtime = 'nodejs';
 
 // If a brand's slug differs from the brand name, list it here.
 const BRAND_OVERRIDES: Record<string, string> = {
-  // 'B.C. Rich': 'bc-rich',
+  // B.C. Rich variants
+  'B.C. Rich': 'bc-rich',
+  'b.c. rich': 'bc-rich',
+  'bc rich': 'bc-rich',
+  // G&L variants
+  'G&L': 'gl',
+  'g&l': 'gl',
+  // PRS variants
+  'PRS': 'paul-reed-smith-guitars-prs',
+  'prs': 'paul-reed-smith-guitars-prs',
+  'Paul Reed Smith': 'paul-reed-smith-guitars-prs',
+  'paul reed smith': 'paul-reed-smith-guitars-prs',
+  // Music Man variants
+  'Music Man': 'music-man',
+  'music man': 'music-man',
+  'Ernie Ball Music Man': 'music-man',
+  'ernie ball music man': 'music-man',
+  // Extra forgiving variants for B.C. Rich
+  'B.C.Rich': 'bc-rich',
+  'b.c.rich': 'bc-rich',
+  'BCRich': 'bc-rich',
+  'bcrich': 'bc-rich',
 };
 
 function toSlug(name: string) {

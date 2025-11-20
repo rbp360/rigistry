@@ -6,7 +6,7 @@ export default function GuitarAmpRoom() {
   return (
     <main style={{ padding: '2rem', textAlign: 'center' }}>
       <h1>Guitar/Amp Room</h1>
-      <Image src="/branding/Guitar room.png" alt="Guitar/Amp Room" width={220} height={220} />
+      <Image src="/branding/Guitar room.png" alt="Guitar/Amp Room" width={220} height={220} loading="eager" priority />
       <p>Add guitars, amps, pedals, and related gear here.</p>
       <div style={{ margin: '12px 0 20px' }}>
         <Link

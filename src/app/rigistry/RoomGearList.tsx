@@ -56,7 +56,20 @@ export default function RoomGearList({ room }: { room: RoomKey }) {
               {(() => {
                 const fallback = g.brand ? buildLogoDevImageUrl(g.brand, { source: 'name', format: 'png', size: 256, retina: true, theme: 'light' }) : '/branding/logo1.png';
                 const src = g.imageUrl || fallback;
-                return <Image src={src} alt={g.brand || 'Gear'} width={120} height={120} style={{ borderRadius: 6, objectFit: 'cover' }} />;
+                return (
+                  <Image
+                    src={src}
+                    alt={g.brand || 'Gear'}
+                    width={120}
+                    height={120}
+                    style={{ borderRadius: 6, objectFit: 'cover' }}
+                    onError={(e) => {
+                      const img = e.currentTarget as unknown as HTMLImageElement;
+                      if (!img || img.src.endsWith('/branding/logo1.png')) return;
+                      img.src = '/branding/logo1.png';
+                    }}
+                  />
+                );
               })()}
               <div style={{ marginTop: 8 }}>
                 <strong>{g.brand || 'Unknown'} {g.model || ''}</strong>
