@@ -83,6 +83,9 @@ export function getAuthClient(): Auth | undefined {
 }
 
 export const googleProvider = new GoogleAuthProvider();
+// Force account selection every sign-in so a different dev user can log in
+// even if the previous Google session is active in the browser.
+googleProvider.setCustomParameters({ prompt: 'select_account' });
 
 export async function signInWithGoogle(): Promise<User | null> {
   const valid = validateFirebaseConfig();
