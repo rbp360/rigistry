@@ -1,6 +1,7 @@
 'use client';
 import { getDb } from '@/lib/firebase';
 import type { GearDoc } from '@/types/schema';
+import { GUITAR_TUNINGS } from '@/types/schema';
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
@@ -120,6 +121,44 @@ export default function GearDetailPage() {
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: 100, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div style={{ background: '#222', borderRadius: 16, boxShadow: '0 4px 32px rgba(0,0,0,0.4)', padding: '32px 36px', minWidth: 320, maxWidth: '90vw', color: '#fff', display: 'flex', flexDirection: 'column', gap: 18 }}>
             <h3 style={{ margin: 0, fontSize: 22 }}>Settings</h3>
+            {/* Number of strings dropdown for guitar and bass */}
+            {gear && (gear.kind === 'guitar' || gear.kind === 'bass') && (
+              <label style={{ display: 'grid', gap: 6 }}>
+                <span>Number of strings</span>
+                <select
+                  value={gear.numberOfStrings?.toString() || ''}
+                  style={{ padding: '8px 10px', border: '1px solid #444', borderRadius: 8, background: '#222', color: '#fff' }}
+                  onChange={async (e) => {
+                    const newVal = parseInt(e.target.value, 10);
+                    if (!gear.id) return;
+                    const db = getDb();
+                    if (!db) return;
+                    const { doc, updateDoc } = await import('firebase/firestore');
+                    const ref = doc(db, 'gear', gear.id);
+                    await updateDoc(ref, { numberOfStrings: newVal });
+                    gear.numberOfStrings = newVal;
+                  }}
+                >
+                  {gear.kind === 'guitar' ? (
+                    <>
+                      <option value="6">6 string</option>
+                      <option value="7">7 string</option>
+                      <option value="8">8 string</option>
+                      <option value="12">12 string</option>
+                    </>
+                  ) : (
+                    <>
+                      <option value="4">4 string</option>
+                      <option value="5">5 string</option>
+                      <option value="6">6 string</option>
+                      <option value="8">8 string</option>
+                      <option value="12">12 string</option>
+                    </>
+                  )}
+                </select>
+                <small style={{ opacity: 0.7 }}>Used for future features.</small>
+              </label>
+            )}
             <button
               type="button"
               style={{ background: '#444', color: '#fff', border: 'none', borderRadius: 8, padding: '12px 18px', fontSize: 16, cursor: 'pointer', fontWeight: 600 }}
@@ -211,7 +250,7 @@ export default function GearDetailPage() {
           </div>
           {/* Placeholder spec panel for guitar-specific maintenance fields */}
           {(gear.kind === 'guitar' || gear.kind === 'bass') && (
-            <GuitarSetupFields notes={gear.notes} />
+            <GuitarSetupFields gear={gear} notes={gear.notes} />
           )}
         </>
       ) : (
@@ -227,7 +266,7 @@ export default function GearDetailPage() {
 
 // ...existing code...
 
-function GuitarSetupFields({ notes }: { notes?: string }) {
+function GuitarSetupFields({ gear, notes }: { gear: GearDoc; notes?: string }) {
   const [dateStrung, setDateStrung] = useState('');
   const [dateSetup, setDateSetup] = useState('');
   const [dateStrungError, setDateStrungError] = useState('');
@@ -310,6 +349,22 @@ function GuitarSetupFields({ notes }: { notes?: string }) {
         alignItems: 'stretch'
       }}
     >
+      {/* Tuning dropdown, options based on numberOfStrings */}
+      <div style={{ display: 'grid', gap: 6 }}>
+        <span style={{ fontWeight: 500, fontSize: 15 }}>Tuning</span>
+        <select
+          style={{ padding: '8px 10px', border: '1px solid #444', borderRadius: 8, background: '#222', color: '#fff' }}
+          defaultValue={(() => {
+            const num = typeof gear?.numberOfStrings === 'number' ? gear.numberOfStrings : 6;
+            const tunings = GUITAR_TUNINGS[num] || GUITAR_TUNINGS[6];
+            return tunings[0]?.name || '';
+          })()}
+        >
+          {(GUITAR_TUNINGS[(typeof gear?.numberOfStrings === 'number' ? gear.numberOfStrings : 6)] || GUITAR_TUNINGS[6]).map((tuning) => (
+            <option key={tuning.name} value={tuning.name}>{tuning.name}</option>
+          ))}
+        </select>
+      </div>
       <FieldButton label="String gauge" value="—" />
       <FieldButton label="String type / manufacturer" value="—" />
       <FieldButton label="Pickups" value="—" />

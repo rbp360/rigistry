@@ -1,3 +1,70 @@
+// Common guitar tunings by string count
+export const GUITAR_TUNINGS: Record<number, Array<{ name: string; notes: string[] }>> = {
+   6: [
+      { name: 'Standard', notes: ['E', 'A', 'D', 'G', 'B', 'E'] },
+      { name: 'Eb Standard', notes: ['Eb', 'Ab', 'Db', 'Gb', 'Bb', 'Eb'] },
+      { name: 'D Standard', notes: ['D', 'G', 'C', 'F', 'A', 'D'] },
+      { name: 'C Standard', notes: ['C', 'F', 'Bb', 'Eb', 'G', 'C'] },
+      { name: 'Drop D', notes: ['D', 'A', 'D', 'G', 'B', 'E'] },
+      { name: 'Drop C', notes: ['C', 'G', 'C', 'F', 'A', 'D'] },
+      { name: 'Drop B', notes: ['B', 'F#', 'B', 'E', 'G#', 'C#'] },
+      { name: 'Drop A', notes: ['A', 'E', 'A', 'D', 'F#', 'B'] },
+      { name: 'Open D', notes: ['D', 'A', 'D', 'F#', 'A', 'D'] },
+      { name: 'Open G', notes: ['D', 'G', 'D', 'G', 'B', 'D'] },
+      { name: 'Open C', notes: ['C', 'G', 'C', 'G', 'C', 'E'] },
+      { name: 'Open E', notes: ['E', 'B', 'E', 'G#', 'B', 'E'] },
+      { name: 'Open A', notes: ['E', 'A', 'E', 'A', 'C#', 'E'] },
+      { name: 'DADGAD', notes: ['D', 'A', 'D', 'G', 'A', 'D'] },
+      { name: 'Double Drop D', notes: ['D', 'A', 'D', 'G', 'B', 'D'] },
+      { name: 'Drop Db', notes: ['Db', 'Ab', 'Db', 'Gb', 'Bb', 'Eb'] },
+      { name: 'Nashville Tuning', notes: ['E', 'A', 'D', 'G', 'B', 'E'] }, // octave up except B/E
+      { name: 'Baritone A Standard', notes: ['A', 'D', 'G', 'C', 'E', 'A'] },
+      { name: 'Modal C', notes: ['C', 'G', 'C', 'G', 'C', 'E'] },
+      { name: 'Orkney (CGDGAD)', notes: ['C', 'G', 'D', 'G', 'A', 'D'] },
+    ],
+   7: [
+      { name: 'Standard 7', notes: ['B', 'E', 'A', 'D', 'G', 'B', 'E'] },
+      { name: 'Drop A', notes: ['A', 'E', 'A', 'D', 'G', 'B', 'E'] },
+      { name: 'Drop G', notes: ['G', 'D', 'G', 'C', 'F', 'A', 'D'] },
+      { name: 'Drop Ab/Drop G#', notes: ['Ab', 'Eb', 'Ab', 'Db', 'Gb', 'Bb', 'Eb'] },
+      { name: 'A Standard', notes: ['A', 'D', 'G', 'C', 'F', 'A', 'D'] },
+      { name: 'G Standard', notes: ['G', 'C', 'F', 'Bb', 'D', 'G', 'C'] },
+      { name: 'C Standard 7', notes: ['C', 'F', 'Bb', 'Eb', 'G', 'C', 'F'] },
+      { name: 'Low A Variant', notes: ['A', 'E', 'A', 'D', 'G', 'B', 'E'] },
+      { name: 'Loomis/Archspire', notes: ['Bb', 'F', 'Bb', 'Eb', 'G', 'C', 'F'] },
+      { name: 'Misha Mansoor Variant', notes: ['G#', 'D#', 'G#', 'C#', 'F#', 'A#', 'D#'] },
+      { name: 'Jazz Variant', notes: ['B', 'E', 'A', 'D', 'F#', 'B', 'E'] },
+      { name: 'Open C 7', notes: ['C', 'G', 'C', 'G', 'C', 'E', 'G'] },
+      { name: 'Open A 7', notes: ['A', 'E', 'A', 'E', 'A', 'C#', 'E'] },
+      { name: 'Open G 7', notes: ['G', 'D', 'G', 'D', 'G', 'B', 'D'] },
+      { name: 'Open D 7', notes: ['D', 'A', 'D', 'F#', 'A', 'D', 'F#'] },
+      { name: 'DADGAD + Low A', notes: ['A', 'D', 'A', 'D', 'G', 'A', 'D'] },
+      { name: 'Nashville 7', notes: ['B', 'E', 'A', 'D', 'G', 'B', 'E'] }, // octave variant
+      { name: 'Half-step Down 7', notes: ['Bb', 'Eb', 'Ab', 'Db', 'Gb', 'Bb', 'Eb'] },
+      { name: 'Whole-step Down 7', notes: ['A', 'D', 'G', 'C', 'F', 'A', 'D'] },
+      { name: 'Slipknot Style', notes: ['A', 'E', 'A', 'D', 'G', 'B', 'E'] },
+    ],
+   8: [
+      { name: 'Standard 8', notes: ['F#', 'B', 'E', 'A', 'D', 'G', 'B', 'E'] },
+      { name: 'Drop E', notes: ['E', 'B', 'E', 'A', 'D', 'G', 'B', 'E'] },
+      { name: 'Drop D#', notes: ['D#', 'B', 'E', 'A', 'D', 'G', 'B', 'E'] },
+      { name: 'Drop D', notes: ['D', 'A', 'D', 'G', 'C', 'F', 'A', 'D'] },
+      { name: 'Eb Standard', notes: ['Eb', 'Ab', 'Db', 'Gb', 'B', 'Eb', 'Ab', 'Db'] },
+      { name: 'E Standard', notes: ['E', 'A', 'D', 'G', 'C', 'F', 'A', 'D'] },
+      { name: 'F Standard', notes: ['F', 'Bb', 'Eb', 'Ab', 'C', 'F', 'Bb', 'Eb'] },
+      { name: 'D Standard', notes: ['D', 'G', 'C', 'F', 'A#', 'D', 'G', 'C'] },
+      { name: 'Drop C#', notes: ['C#', 'G#', 'C#', 'F#', 'B', 'E', 'G#', 'C#'] },
+      { name: 'Drop C', notes: ['C', 'G', 'C', 'F', 'A#', 'D', 'G', 'C'] },
+      { name: 'Drop B', notes: ['B', 'F#', 'B', 'E', 'A', 'D', 'G', 'B'] },
+      { name: 'Drop A#', notes: ['A#', 'F', 'A#', 'D#', 'G', 'C', 'F', 'A#'] },
+      { name: 'Meshuggah Standard', notes: ['F#', 'B', 'E', 'A', 'D', 'G', 'B', 'E'] },
+      { name: 'Animals as Leaders', notes: ['E', 'B', 'E'] },
+    ],
+  12: [
+    { name: 'Standard (EADGBE x2)', notes: ['E', 'E', 'A', 'A', 'D', 'D', 'G', 'G', 'B', 'B', 'E', 'E'] },
+    { name: 'Open G', notes: ['D', 'D', 'G', 'G', 'D', 'D', 'G', 'G', 'B', 'B', 'D', 'D'] },
+  ],
+};
 // High-level gear classification used across catalog & rig nodes
 // New top-level categories for Add Gear (20 categories provided by product):
 export type GearCategory =
@@ -138,8 +205,10 @@ export interface UserDoc {
      color?: string;
      notes?: string;
      imageUrl?: string; // hosted image URL (Cloudinary/Firebase Storage/Manufacturer)
-     // Optional deeper metadata for search/filtering (extensible)
-     specs?: Record<string, string | number | boolean>;
+    // Number of strings (for guitar/bass features)
+    numberOfStrings?: number;
+    // Optional deeper metadata for search/filtering (extensible)
+    specs?: Record<string, string | number | boolean>;
      catalogSource?: CatalogSourceMeta;
      room?: string; // room assignment (e.g. 'guitar-amp', 'drum', etc.)
      archived?: boolean; // soft delete / hide from active lists
