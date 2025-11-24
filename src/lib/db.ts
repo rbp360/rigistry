@@ -20,7 +20,7 @@ import type { GearDoc, RigDoc, RigNodeDoc } from '@/types/schema';
 
 const gearConverter: FirestoreDataConverter<GearDoc> = {
   toFirestore(d: GearDoc): DocumentData {
-    const { ownerId, kind, kindDetail, brand, model, serialNumber, color, notes, imageUrl, specs, catalogSource, archived, deleted, room } = d;
+    const { ownerId, kind, kindDetail, brand, model, serialNumber, color, notes, imageUrl, specs, catalogSource, archived, deleted, room, nickname, numberOfStrings, stringManufacturer, pickupManufacturer, pickupBManufacturer, pickupMManufacturer, pickupNManufacturer, snapshots } = d;
     return {
       ownerId,
       kind,
@@ -36,6 +36,14 @@ const gearConverter: FirestoreDataConverter<GearDoc> = {
       room: room ?? null,
       archived: archived ?? false,
       deleted: deleted ?? false,
+      nickname: nickname ?? null,
+      numberOfStrings: numberOfStrings ?? null,
+      stringManufacturer: stringManufacturer ?? null,
+      pickupManufacturer: pickupManufacturer ?? null,
+      pickupBManufacturer: pickupBManufacturer ?? null,
+      pickupMManufacturer: pickupMManufacturer ?? null,
+      pickupNManufacturer: pickupNManufacturer ?? null,
+      snapshots: snapshots ?? null,
     } as DocumentData;
   },
   fromFirestore(snap) {
@@ -56,6 +64,14 @@ const gearConverter: FirestoreDataConverter<GearDoc> = {
       room: d.room ?? undefined,
       archived: d.archived ?? false,
       deleted: d.deleted ?? false,
+      nickname: d.nickname ?? d.friendlyName ?? undefined,
+      numberOfStrings: d.numberOfStrings ?? undefined,
+      stringManufacturer: d.stringManufacturer ?? undefined,
+      pickupManufacturer: d.pickupManufacturer ?? undefined,
+      pickupBManufacturer: d.pickupBManufacturer ?? d.pickupManufacturer ?? undefined,
+      pickupMManufacturer: d.pickupMManufacturer ?? undefined,
+      pickupNManufacturer: d.pickupNManufacturer ?? undefined,
+      snapshots: Array.isArray(d.snapshots) ? d.snapshots : undefined,
       createdAt: (d.createdAt as Timestamp) ?? null,
       updatedAt: (d.updatedAt as Timestamp) ?? null,
     } satisfies GearDoc;

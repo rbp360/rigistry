@@ -123,6 +123,7 @@ export const PICKUP_MANUFACTURERS = [
   'Bill Lawrence (Wilde Pickups)',
   'Häussel Pickups',
   'ToneRider Pickups',
+  'Not installed',
   'CUSTOM'
 ] as const;
 export type PickupManufacturer = typeof PICKUP_MANUFACTURERS[number];
@@ -261,7 +262,9 @@ export interface UserDoc {
      kindDetail?: string;
      brand?: string;
      model?: string;
-     serialNumber?: string;
+    serialNumber?: string;
+     // User-assigned nickname for the item (previously friendlyName)
+     nickname?: string;
      // Optional color/finish descriptor to refine catalog & image searches (e.g., "sunburst", "black")
      color?: string;
      notes?: string;
@@ -270,8 +273,12 @@ export interface UserDoc {
     numberOfStrings?: number;
       // String manufacturer / brand for current set (optional)
       stringManufacturer?: string;
-      // Pickup manufacturer (primary set installed)
+      // Legacy single pickup manufacturer (deprecated in UI)
       pickupManufacturer?: string;
+      // New separate pickup manufacturer fields (Bridge, Middle, Neck)
+      pickupBManufacturer?: string;
+      pickupMManufacturer?: string;
+      pickupNManufacturer?: string;
     // Optional deeper metadata for search/filtering (extensible)
     specs?: Record<string, string | number | boolean>;
       // Historical setup snapshots allowing user to archive past configurations
@@ -289,11 +296,17 @@ export interface UserDoc {
     savedAt: number; // epoch milliseconds
     monthYear: string; // mm/yy string for quick display
     stringManufacturer?: string;
+    // Legacy combined
     pickupManufacturer?: string;
+    // New separated pickup manufacturers
+    pickupBManufacturer?: string;
+    pickupMManufacturer?: string;
+    pickupNManufacturer?: string;
     numberOfStrings?: number;
     tuning?: string;
     stringGauge?: string;
     notes?: string; // notes field content at time of snapshot
+    nickname?: string; // nickname captured at time of snapshot
   }
 
 export interface RigDoc {

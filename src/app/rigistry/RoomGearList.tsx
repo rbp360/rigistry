@@ -74,9 +74,12 @@ export default function RoomGearList({ room }: { room: RoomKey }) {
                 );
               })()}
               <div style={{ marginTop: 8 }}>
-                <strong>{g.brand || 'Unknown'} {g.model || ''}</strong>
+                <strong>
+                  {g.nickname ? `${g.nickname} — ` : ''}{g.brand || 'Unknown'} {g.model || ''}
+                  {g.serialNumber ? ` — ${g.serialNumber}` : ''}
+                </strong>
                 <div style={{ fontSize: 13, opacity: 0.7 }}>{g.kind}</div>
-                {g.notes && <div style={{ fontSize: 13, marginTop: 4 }}>{g.notes}</div>}
+                {/* Notes removed from room listing to hide snapshot markers */}
               </div>
             </div>
           </a>

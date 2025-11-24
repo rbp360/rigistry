@@ -1,11 +1,63 @@
 'use client';
+import React from 'react';
 import { getDb } from '@/lib/firebase';
-import type { GearDoc } from '@/types/schema';
+import type { GearDoc, GearSetupSnapshot } from '@/types/schema';
 import { GUITAR_TUNINGS, GUITAR_STRING_GAUGES, STRING_MANUFACTURERS, PICKUP_MANUFACTURERS } from '@/types/schema';
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useToast } from '@/contexts/ToastContext';
 import Image from 'next/image';
+
+// Single utility to render notes with clickable snapshot markers
+function renderNotesWithSnapshots(notes: string | undefined, gear: GearDoc) {
+  if (!notes) return '—';
+  const regex = /--Snapshot (\d{2}\/\d{2})--/g;
+  const parts: React.ReactNode[] = [];
+  let lastIdx = 0;
+  let match: RegExpExecArray | null;
+  let idx = 0;
+  while ((match = regex.exec(notes)) !== null) {
+    const start = match.index;
+    const end = regex.lastIndex;
+    if (start > lastIdx) parts.push(notes.slice(lastIdx, start));
+    const monthYear = match[1];
+    const snap = gear.snapshots?.find(s => s.monthYear === monthYear);
+    if (snap) {
+      parts.push(
+        <button
+          key={`snapbtn-${idx}`}
+          type="button"
+          title={`View snapshot from ${monthYear}`}
+          style={{
+            background: '#fff',
+            color: '#b00',
+            border: '2px solid #b00',
+            borderRadius: 8,
+            padding: '2px 8px',
+            fontWeight: 700,
+            fontSize: 13,
+            cursor: 'pointer',
+            margin: '0 2px',
+            boxShadow: '0 1px 4px rgba(0,0,0,0.10)',
+            outline: 'none',
+          }}
+          onClick={e => {
+            e.stopPropagation();
+            window.open(`/gear/${gear.id}?snapshot=${snap.savedAt}`, '_blank');
+          }}
+        >
+          {`--Snapshot ${monthYear}--`}
+        </button>
+      );
+      idx++;
+    } else {
+      parts.push(match[0]);
+    }
+    lastIdx = end;
+  }
+  if (lastIdx < notes.length) parts.push(notes.slice(lastIdx));
+  return <>{parts}</>;
+}
 // Removed logo.dev fallback in favor of server-scraped brand logos
 
 export default function GearDetailPage() {
@@ -42,12 +94,17 @@ export default function GearDetailPage() {
             brand: d.brand ?? undefined,
             model: d.model ?? undefined,
             serialNumber: d.serialNumber ?? undefined,
+            // Map legacy friendlyName to new nickname field
+            nickname: d.nickname ?? d.friendlyName ?? undefined,
             notes: d.notes ?? undefined,
             imageUrl: d.imageUrl ?? undefined,
             specs: d.specs ?? undefined,
             catalogSource: d.catalogSource ?? undefined,
             stringManufacturer: d.stringManufacturer ?? undefined,
             pickupManufacturer: d.pickupManufacturer ?? undefined,
+            pickupBManufacturer: d.pickupBManufacturer ?? d.pickupManufacturer ?? undefined,
+            pickupMManufacturer: d.pickupMManufacturer ?? undefined,
+            pickupNManufacturer: d.pickupNManufacturer ?? undefined,
             snapshots: d.snapshots ?? [],
             archived: d.archived ?? false,
             createdAt: d.createdAt ?? null,
@@ -212,8 +269,14 @@ export default function GearDetailPage() {
           }}
         >
           <h1 style={{ margin: 0, fontSize: 20, lineHeight: 1.2 }}>
-            {([gear.brand, gear.model].filter(Boolean).join(' ') || 'Gear')}
-            {gear.serialNumber ? ` — ${gear.serialNumber}` : ''}
+            {(() => {
+              const brandModel = [gear.brand, gear.model].filter(Boolean).join(' ');
+              const parts: string[] = [];
+              if (gear.nickname) parts.push(gear.nickname);
+              if (brandModel) parts.push(brandModel);
+              const base = parts.join(' — ') || brandModel || gear.nickname || 'Gear';
+              return base + (gear.serialNumber ? ` — ${gear.serialNumber}` : '');
+            })()}
           </h1>
         </div>
       )}
@@ -242,13 +305,13 @@ export default function GearDetailPage() {
       {!loading && gear && ['guitar', 'bass'].includes(gear.kind) ? (
         <>
           {/* Background watermark */}
-          <div style={{ position: 'absolute', inset: 0, width: '100vw', height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ position: 'absolute', inset: 0, width: '100vw', height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none', zIndex: 0 }}>
             <Image
               src="/branding/Guitar backdrop.png"
               alt="Guitar/Bass Backdrop"
               width={900}
               height={900}
-              style={{ objectFit: 'contain', opacity: 0.15, maxWidth: '80vw', maxHeight: '80vh' }}
+              style={{ objectFit: 'contain', opacity: 0.15, maxWidth: '80vw', maxHeight: '80vh', pointerEvents: 'none' }}
               priority
             />
           </div>
@@ -271,24 +334,63 @@ export default function GearDetailPage() {
 // ...existing code...
 
 function GuitarSetupFields({ gear, notes }: { gear: GearDoc; notes?: string }) {
+  // Extract snapshot from URL if present
+  const [activeSnapshot, setActiveSnapshot] = useState<GearSetupSnapshot | null>(null);
+  const hasSnapshotParam = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).has('snapshot') : false;
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const searchParams = new URLSearchParams(window.location.search);
+    const snapshotDate = searchParams.get('snapshot');
+    if (snapshotDate && Array.isArray(gear.snapshots)) {
+      const found = gear.snapshots.find(s => String(s.savedAt) === snapshotDate);
+      setActiveSnapshot(found || null);
+    }
+  }, [gear.snapshots]);
   const [dateStrung, setDateStrung] = useState('');
   const [dateSetup, setDateSetup] = useState('');
   const [dateStrungError, setDateStrungError] = useState('');
   const [dateSetupError, setDateSetupError] = useState('');
-  const [stringBrand, setStringBrand] = useState<string>(() => gear.stringManufacturer || STRING_MANUFACTURERS[0]);
+  const [stringBrand, setStringBrand] = useState<string>(() => gear.stringManufacturer || '');
   const [customBrand, setCustomBrand] = useState<string>('');
-  const [pickupBrand, setPickupBrand] = useState<string>(() => gear.pickupManufacturer || PICKUP_MANUFACTURERS[0]);
-  const [customPickup, setCustomPickup] = useState<string>('');
+  const [pickupBBrand, setPickupBBrand] = useState<string>(() => gear.pickupBManufacturer || gear.pickupManufacturer || '');
+  const [pickupMBrand, setPickupMBrand] = useState<string>(() => gear.pickupMManufacturer || '');
+  const [pickupNBrand, setPickupNBrand] = useState<string>(() => gear.pickupNManufacturer || '');
+  const [customPickupB, setCustomPickupB] = useState<string>('');
+  const [customPickupM, setCustomPickupM] = useState<string>('');
+  const [customPickupN, setCustomPickupN] = useState<string>('');
   const [tuningName, setTuningName] = useState<string>(() => {
-    const num = typeof gear?.numberOfStrings === 'number' ? gear.numberOfStrings : 6;
-    const tunings = GUITAR_TUNINGS[num] || GUITAR_TUNINGS[6];
-    return tunings[0]?.name || '';
+    const val = (gear && 'specs' in gear ? (gear as { specs?: { tuning?: string } }).specs?.tuning : undefined);
+    return typeof val === 'string' ? val : '';
   });
   const [stringGauge, setStringGauge] = useState<string>(() => {
-    const num = typeof gear?.numberOfStrings === 'number' ? gear.numberOfStrings : 6;
-    const gauges = GUITAR_STRING_GAUGES[num] || GUITAR_STRING_GAUGES[6];
-    return gauges[0] || '';
+    const val = (gear && 'specs' in gear ? (gear as { specs?: { stringGauge?: string } }).specs?.stringGauge : undefined);
+    return typeof val === 'string' ? val : '';
   });
+  const [nickname, setNickname] = useState<string>(gear.nickname || '');
+  // Derived display values (override with snapshot if viewing archive)
+  const displayStringBrand = activeSnapshot?.stringManufacturer || stringBrand;
+  const displayPickupBBrand = activeSnapshot?.pickupBManufacturer || activeSnapshot?.pickupManufacturer || pickupBBrand;
+  const displayPickupMBrand = activeSnapshot?.pickupMManufacturer || pickupMBrand;
+  const displayPickupNBrand = activeSnapshot?.pickupNManufacturer || pickupNBrand;
+  const displayTuningName = activeSnapshot?.tuning || tuningName;
+  const displayStringGauge = activeSnapshot?.stringGauge || stringGauge;
+  // Editable notes state
+  const [notesEdit, setNotesEdit] = useState<string>(notes || '');
+  useEffect(() => {
+    const isSnapshot = hasSnapshotParam && Boolean(activeSnapshot);
+    if (!isSnapshot) {
+      setNotesEdit(notes || '');
+      setNickname(gear.nickname || '');
+    }
+  }, [notes, gear.nickname, hasSnapshotParam, activeSnapshot]);
+  const snapshotMode = hasSnapshotParam && Boolean(activeSnapshot);
+
+  // Clear snapshot state when param removed so editing works
+  useEffect(() => {
+    if (!hasSnapshotParam && activeSnapshot) {
+      setActiveSnapshot(null);
+    }
+  }, [hasSnapshotParam, activeSnapshot]);
   const [showSnapshotExplain, setShowSnapshotExplain] = useState(false);
   const [snapshotSaving, setSnapshotSaving] = useState(false);
   const { addToast } = useToast();
@@ -329,10 +431,6 @@ function GuitarSetupFields({ gear, notes }: { gear: GearDoc; notes?: string }) {
 
   function formatDateSlashes(val: string): string {
     const digits = val.replace(/[^\d]/g, '');
-    if (digits.length === 6) {
-      // ddmmyy
-      return `${digits.slice(0,2)}/${digits.slice(2,4)}/${digits.slice(4,6)}`;
-    }
     if (digits.length === 8) {
       // ddmmyyyy
       return `${digits.slice(0,2)}/${digits.slice(2,4)}/${digits.slice(4,8)}`;
@@ -355,29 +453,87 @@ function GuitarSetupFields({ gear, notes }: { gear: GearDoc; notes?: string }) {
 
   return (
     <div
+      className="gear-detail-page"
       style={{
-        position: 'absolute',
-        top: 210,
-        left: '50%',
-        transform: 'translateX(-50%)',
         width: '92vw',
         maxWidth: 1400,
-        zIndex: 5,
+        margin: '220px auto 90px', // push below header/image, trimmed bottom space
         padding: '0 12px',
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
-        gap: 14,
-        alignItems: 'stretch'
+        gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))',
+        gap: 16,
+        alignItems: 'stretch',
+        position: 'relative',
+        zIndex: 2
       }}
     >
+      {/* If viewing a snapshot, show large red date and snapshot settings */}
+      {snapshotMode && activeSnapshot && (
+        <div style={{ gridColumn: '1 / -1', textAlign: 'center', margin: '0 0 28px 0', position: 'relative' }}>
+          <div style={{ fontSize: 48, color: '#b00', fontWeight: 900, letterSpacing: 2 }}>
+            {activeSnapshot.monthYear}
+          </div>
+          <div style={{ fontSize: 18, color: '#444', marginTop: 8 }}>
+            Historic gear setup snapshot (read-only)
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              if (gear.id) {
+                window.location.href = `/gear/${gear.id}`; // remove snapshot param
+              }
+            }}
+            style={{
+              position: 'absolute',
+              top: 4,
+              right: 4,
+              background: '#444',
+              color: '#fff',
+              border: '1px solid #555',
+              padding: '6px 12px',
+              fontSize: 12,
+              borderRadius: 6,
+              cursor: 'pointer'
+            }}
+          >
+            Exit snapshot view
+          </button>
+        </div>
+      )}
+      {/* Friendly name (user nickname) */}
+      <div style={{ display: 'grid', gap: 6 }}>
+        <span className="setup-label">Nickname</span>
+        <input
+          type="text"
+          value={nickname}
+          disabled={snapshotMode}
+          onChange={e => setNickname(e.target.value)}
+          onBlur={async () => {
+            if (snapshotMode) return;
+            if (!gear.id) return;
+            const db = getDb();
+            if (!db) return;
+            const { doc, updateDoc } = await import('firebase/firestore');
+            const ref = doc(db, 'gear', gear.id);
+            const trimmed = nickname.trim();
+            // Write both nickname and legacy friendlyName for backward compatibility
+            await updateDoc(ref, { nickname: trimmed || null, friendlyName: trimmed || null });
+            gear.nickname = trimmed || undefined;
+          }}
+          placeholder="e.g. 'Blackie', 'Old Faithful'"
+          style={{ padding: '8px 10px', border: '1px solid #444', borderRadius: 8, background: '#222', color: '#fff' }}
+        />
+      </div>
       {/* Tuning dropdown, options based on numberOfStrings */}
       <div style={{ display: 'grid', gap: 6 }}>
         <span className="setup-label">Tuning</span>
         <select
           style={{ padding: '8px 10px', border: '1px solid #444', borderRadius: 8, background: '#222', color: '#fff' }}
-          value={tuningName}
+          value={snapshotMode ? displayTuningName : tuningName}
+          disabled={snapshotMode}
           onChange={e => setTuningName(e.target.value)}
         >
+          <option value="">—</option>
           {(GUITAR_TUNINGS[(typeof gear?.numberOfStrings === 'number' ? gear.numberOfStrings : 6)] || GUITAR_TUNINGS[6]).map((tuning) => (
             <option key={tuning.name} value={tuning.name}>{tuning.name}</option>
           ))}
@@ -387,9 +543,11 @@ function GuitarSetupFields({ gear, notes }: { gear: GearDoc; notes?: string }) {
         <span className="setup-label">String gauge</span>
         <select
           style={{ padding: '8px 10px', border: '1px solid #444', borderRadius: 8, background: '#222', color: '#fff' }}
-          value={stringGauge}
+          value={snapshotMode ? displayStringGauge : stringGauge}
+          disabled={snapshotMode}
           onChange={e => setStringGauge(e.target.value)}
         >
+          <option value="">—</option>
           {(GUITAR_STRING_GAUGES[(typeof gear?.numberOfStrings === 'number' ? gear.numberOfStrings : 6)] || GUITAR_STRING_GAUGES[6]).map(g => (
             <option key={g} value={g}>{g}</option>
           ))}
@@ -399,7 +557,8 @@ function GuitarSetupFields({ gear, notes }: { gear: GearDoc; notes?: string }) {
         <span className="setup-label">String type / manufacturer</span>
         <select
           style={{ padding: '8px 10px', border: '1px solid #444', borderRadius: 8, background: '#222', color: '#fff' }}
-          value={stringBrand}
+          value={snapshotMode ? displayStringBrand : stringBrand}
+          disabled={snapshotMode}
           onChange={async (e) => {
             const val = e.target.value;
             setStringBrand(val);
@@ -410,18 +569,19 @@ function GuitarSetupFields({ gear, notes }: { gear: GearDoc; notes?: string }) {
                 if (db) {
                   const { doc, updateDoc } = await import('firebase/firestore');
                   const ref = doc(db, 'gear', gear.id);
-                  await updateDoc(ref, { stringManufacturer: val });
+                  await updateDoc(ref, { stringManufacturer: val || null });
                   gear.stringManufacturer = val;
                 }
               }
             }
           }}
         >
+          <option value="">—</option>
           {STRING_MANUFACTURERS.map(m => (
             <option key={m} value={m}>{m}</option>
           ))}
         </select>
-        {stringBrand === 'CUSTOM' && (
+        {!snapshotMode && stringBrand === 'CUSTOM' && (
           <input
             type="text"
             placeholder="Enter custom brand"
@@ -445,52 +605,155 @@ function GuitarSetupFields({ gear, notes }: { gear: GearDoc; notes?: string }) {
           />
         )}
       </div>
-      <div style={{ display: 'grid', gap: 6 }}>
-        <span className="setup-label">Pickups</span>
-        <select
-          style={{ padding: '8px 10px', border: '1px solid #444', borderRadius: 8, background: '#222', color: '#fff' }}
-          value={pickupBrand}
-          onChange={async (e) => {
-            const val = e.target.value;
-            setPickupBrand(val);
-            if (val !== 'CUSTOM') {
-              setCustomPickup('');
-              if (gear.id) {
-                const db = getDb();
-                if (db) {
-                  const { doc, updateDoc } = await import('firebase/firestore');
-                  const ref = doc(db, 'gear', gear.id);
-                  await updateDoc(ref, { pickupManufacturer: val });
-                  gear.pickupManufacturer = val;
+      {/* Pickups (Bridge / Middle / Neck) */}
+      <div style={{ display: 'grid', gap: 8, gridColumn: '1 / -1', background: 'rgba(0,0,0,0.18)', padding: '12px 14px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.12)' }}>
+        <span className="setup-label" style={{ fontWeight: 600, fontSize: 12, letterSpacing: '.5px', textTransform: 'uppercase', opacity: 0.75 }}>Pickups</span>
+        <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fit,minmax(160px,1fr))' }}>
+          {/* Bridge */}
+          <div style={{ display: 'grid', gap: 6 }}>
+            <span className="setup-label">Pickup B</span>
+            <select
+              style={{ padding: '8px 10px', border: '1px solid #444', borderRadius: 8, background: '#222', color: '#fff' }}
+              value={snapshotMode ? displayPickupBBrand : pickupBBrand}
+              disabled={snapshotMode}
+              onChange={async (e) => {
+                const val = e.target.value;
+                setPickupBBrand(val);
+                if (val !== 'CUSTOM') {
+                  setCustomPickupB('');
+                  if (gear.id) {
+                    const db = getDb();
+                    if (db) {
+                      const { doc, updateDoc } = await import('firebase/firestore');
+                      const ref = doc(db, 'gear', gear.id);
+                      await updateDoc(ref, { pickupBManufacturer: val || null });
+                      gear.pickupBManufacturer = val;
+                    }
+                  }
                 }
-              }
-            }
-          }}
-        >
-          {PICKUP_MANUFACTURERS.map(m => (
-            <option key={m} value={m}>{m}</option>
-          ))}
-        </select>
-        {pickupBrand === 'CUSTOM' && (
-          <input
-            type="text"
-            placeholder="Enter custom pickup manufacturer"
-            value={customPickup}
-            onChange={(e) => setCustomPickup(e.target.value)}
-            onBlur={async () => {
-              if (gear.id) {
-                const db = getDb();
-                if (db) {
-                  const { doc, updateDoc } = await import('firebase/firestore');
-                  const ref = doc(db, 'gear', gear.id);
-                  await updateDoc(ref, { pickupManufacturer: customPickup || null });
-                  gear.pickupManufacturer = customPickup || undefined;
+              }}
+            >
+              <option value="">—</option>
+              {PICKUP_MANUFACTURERS.map(m => <option key={m} value={m}>{m}</option>)}
+            </select>
+            {!snapshotMode && pickupBBrand === 'CUSTOM' && (
+              <input
+                type="text"
+                placeholder="Custom bridge pickup"
+                value={customPickupB}
+                onChange={e => setCustomPickupB(e.target.value)}
+                onBlur={async () => {
+                  if (gear.id) {
+                    const db = getDb();
+                    if (db) {
+                      const { doc, updateDoc } = await import('firebase/firestore');
+                      const ref = doc(db, 'gear', gear.id);
+                      await updateDoc(ref, { pickupBManufacturer: customPickupB || null });
+                      gear.pickupBManufacturer = customPickupB || undefined;
+                    }
+                  }
+                }}
+                style={{ padding: '8px 10px', border: '1px solid #444', borderRadius: 8, background: '#222', color: '#fff' }}
+              />
+            )}
+          </div>
+          {/* Middle */}
+          <div style={{ display: 'grid', gap: 6 }}>
+            <span className="setup-label">Pickup M</span>
+            <select
+              style={{ padding: '8px 10px', border: '1px solid #444', borderRadius: 8, background: '#222', color: '#fff' }}
+              value={snapshotMode ? displayPickupMBrand : pickupMBrand}
+              disabled={snapshotMode}
+              onChange={async (e) => {
+                const val = e.target.value;
+                setPickupMBrand(val);
+                if (val !== 'CUSTOM') {
+                  setCustomPickupM('');
+                  if (gear.id) {
+                    const db = getDb();
+                    if (db) {
+                      const { doc, updateDoc } = await import('firebase/firestore');
+                      const ref = doc(db, 'gear', gear.id);
+                      await updateDoc(ref, { pickupMManufacturer: val || null });
+                      gear.pickupMManufacturer = val;
+                    }
+                  }
                 }
-              }
-            }}
-            style={{ padding: '8px 10px', border: '1px solid #444', borderRadius: 8, background: '#222', color: '#fff' }}
-          />
-        )}
+              }}
+            >
+              <option value="">—</option>
+              {PICKUP_MANUFACTURERS.map(m => <option key={m} value={m}>{m}</option>)}
+            </select>
+            {!snapshotMode && pickupMBrand === 'CUSTOM' && (
+              <input
+                type="text"
+                placeholder="Custom middle pickup"
+                value={customPickupM}
+                onChange={e => setCustomPickupM(e.target.value)}
+                onBlur={async () => {
+                  if (gear.id) {
+                    const db = getDb();
+                    if (db) {
+                      const { doc, updateDoc } = await import('firebase/firestore');
+                      const ref = doc(db, 'gear', gear.id);
+                      await updateDoc(ref, { pickupMManufacturer: customPickupM || null });
+                      gear.pickupMManufacturer = customPickupM || undefined;
+                    }
+                  }
+                }}
+                style={{ padding: '8px 10px', border: '1px solid #444', borderRadius: 8, background: '#222', color: '#fff' }}
+              />
+            )}
+          </div>
+          {/* Neck */}
+          <div style={{ display: 'grid', gap: 6 }}>
+            <span className="setup-label">Pickup N</span>
+            <select
+              style={{ padding: '8px 10px', border: '1px solid #444', borderRadius: 8, background: '#222', color: '#fff' }}
+              value={snapshotMode ? displayPickupNBrand : pickupNBrand}
+              disabled={snapshotMode}
+              onChange={async (e) => {
+                const val = e.target.value;
+                setPickupNBrand(val);
+                if (val !== 'CUSTOM') {
+                  setCustomPickupN('');
+                  if (gear.id) {
+                    const db = getDb();
+                    if (db) {
+                      const { doc, updateDoc } = await import('firebase/firestore');
+                      const ref = doc(db, 'gear', gear.id);
+                      await updateDoc(ref, { pickupNManufacturer: val || null });
+                      gear.pickupNManufacturer = val;
+                    }
+                  }
+                }
+              }}
+            >
+              <option value="">—</option>
+              {PICKUP_MANUFACTURERS.map(m => <option key={m} value={m}>{m}</option>)}
+            </select>
+            {!snapshotMode && pickupNBrand === 'CUSTOM' && (
+              <input
+                type="text"
+                placeholder="Custom neck pickup"
+                value={customPickupN}
+                onChange={e => setCustomPickupN(e.target.value)}
+                onBlur={async () => {
+                  if (gear.id) {
+                    const db = getDb();
+                    if (db) {
+                      const { doc, updateDoc } = await import('firebase/firestore');
+                      const ref = doc(db, 'gear', gear.id);
+                      await updateDoc(ref, { pickupNManufacturer: customPickupN || null });
+                      gear.pickupNManufacturer = customPickupN || undefined;
+                    }
+                  }
+                }}
+                style={{ padding: '8px 10px', border: '1px solid #444', borderRadius: 8, background: '#222', color: '#fff' }}
+              />
+            )}
+          </div>
+        </div>
       </div>
       <FieldInput
         label="Date strung"
@@ -512,19 +775,69 @@ function GuitarSetupFields({ gear, notes }: { gear: GearDoc; notes?: string }) {
         }}
         error={dateSetupError}
       />
-      <FieldButton label="Set-up notes" value="—" wide />
-      <FieldButton label="Notes" value={notes || '—'} wide />
+      {/* Notes editable / snapshot */}
+      {!snapshotMode && (
+        <div style={{ gridColumn: '1 / -1', display: 'grid', gap: 10 }}>
+          <div style={{ background: 'rgba(0,0,0,0.25)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 10, padding: '14px 16px 12px', color: '#eee' }}>
+            <span style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.5px', opacity: 0.65 }}>Notes (editable)</span>
+            <textarea
+              value={notesEdit}
+              onChange={e => setNotesEdit(e.target.value)}
+              onBlur={async () => {
+                if (!gear.id) return;
+                const db = getDb();
+                if (!db) return;
+                try {
+                  const { doc, updateDoc } = await import('firebase/firestore');
+                  const ref = doc(db, 'gear', gear.id);
+                  await updateDoc(ref, { notes: notesEdit || null });
+                  gear.notes = notesEdit || undefined;
+                } catch (err) {
+                  console.error('Notes save failed', err);
+                }
+              }}
+              placeholder="Enter setup / maintenance notes..."
+              style={{
+                marginTop: 6,
+                width: '100%',
+                minHeight: 140,
+                resize: 'vertical',
+                background: '#222',
+                color: '#fff',
+                border: '1px solid #444',
+                borderRadius: 8,
+                padding: '10px 12px',
+                fontFamily: 'inherit',
+                fontSize: 15,
+                lineHeight: 1.4,
+                outline: 'none'
+              }}
+            />
+            <small style={{ display: 'block', opacity: 0.55, marginTop: 6 }}>
+              Blur (click outside) to auto-save. Snapshot markers like --Snapshot mm/yy-- will become clickable after saving.
+            </small>
+          </div>
+          <div style={{ background: 'rgba(0,0,0,0.18)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 10, padding: '12px 14px 16px', color: '#eee', fontSize: 14, lineHeight: 1.3, whiteSpace: 'pre-wrap' }}>
+            <span style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.5px', opacity: 0.65 }}>Preview</span>
+            <div style={{ fontSize: 15, fontWeight: 600, opacity: !notesEdit ? 0.45 : 0.95, marginTop: 6 }}>
+              {renderNotesWithSnapshots(notesEdit, gear)}
+            </div>
+          </div>
+        </div>
+      )}
       <FieldButton label="Advanced / settings" value="Placeholder (future setup panel)" wide subtle />
       {/* Snapshot button positioned bottom-right of viewport */}
-      <div style={{ position: 'fixed', bottom: 18, right: 18, zIndex: 50, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8 }}>
-        <button
-          type="button"
-          onClick={() => setShowSnapshotExplain(true)}
-          style={{ background: '#2563eb', color: '#fff', border: '1px solid #144c99', padding: '10px 18px', fontSize: 14, borderRadius: 8, cursor: 'pointer', fontWeight: 600, boxShadow: '0 3px 12px rgba(0,0,0,0.35)' }}
-        >
-          Save snapshot to archive
-        </button>
-      </div>
+      {!snapshotMode && (
+        <div style={{ position: 'fixed', bottom: 18, right: 18, zIndex: 50, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8 }}>
+          <button
+            type="button"
+            onClick={() => setShowSnapshotExplain(true)}
+            style={{ background: '#2563eb', color: '#fff', border: '1px solid #144c99', padding: '10px 18px', fontSize: 14, borderRadius: 8, cursor: 'pointer', fontWeight: 600, boxShadow: '0 3px 12px rgba(0,0,0,0.35)' }}
+          >
+            Save snapshot to archive
+          </button>
+        </div>
+      )}
       {showSnapshotExplain && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div style={{ background: '#222', color: '#fff', padding: '28px 32px', borderRadius: 16, width: 'min(460px,90vw)', display: 'grid', gap: 18, boxShadow: '0 4px 28px rgba(0,0,0,0.45)' }}>
@@ -558,12 +871,18 @@ function GuitarSetupFields({ gear, notes }: { gear: GearDoc; notes?: string }) {
                     };
                     const resolvedStringBrand = stringBrand === 'CUSTOM' ? (customBrand.trim() || null) : stringBrand;
                     if (resolvedStringBrand) snapshot.stringManufacturer = resolvedStringBrand;
-                    const resolvedPickupBrand = pickupBrand === 'CUSTOM' ? (customPickup.trim() || null) : pickupBrand;
-                    if (resolvedPickupBrand) snapshot.pickupManufacturer = resolvedPickupBrand;
+                    const resolvedPickupB = pickupBBrand === 'CUSTOM' ? (customPickupB.trim() || null) : pickupBBrand;
+                    if (resolvedPickupB) snapshot.pickupBManufacturer = resolvedPickupB;
+                    const resolvedPickupM = pickupMBrand === 'CUSTOM' ? (customPickupM.trim() || null) : pickupMBrand;
+                    if (resolvedPickupM) snapshot.pickupMManufacturer = resolvedPickupM;
+                    const resolvedPickupN = pickupNBrand === 'CUSTOM' ? (customPickupN.trim() || null) : pickupNBrand;
+                    if (resolvedPickupN) snapshot.pickupNManufacturer = resolvedPickupN;
                     if (gear.numberOfStrings) snapshot.numberOfStrings = gear.numberOfStrings;
                     if (tuningName) snapshot.tuning = tuningName;
                     if (stringGauge) snapshot.stringGauge = stringGauge;
-                    if (notes) snapshot.notes = notes;
+                    if (notesEdit) snapshot.notes = notesEdit;
+                    const trimmedNickname = nickname.trim();
+                    if (trimmedNickname) snapshot.nickname = trimmedNickname;
                     const db = getDb();
                     if (db) {
                       const { doc, getDoc, updateDoc } = await import('firebase/firestore');
@@ -571,7 +890,7 @@ function GuitarSetupFields({ gear, notes }: { gear: GearDoc; notes?: string }) {
                       const existingSnap = await getDoc(ref);
                       const data = existingSnap.exists() ? existingSnap.data() : {};
                       const existingSnapshots = Array.isArray(data.snapshots) ? data.snapshots : [];
-                      const baseNotes = (data.notes || notes || '').trim();
+                      const baseNotes = (data.notes || notesEdit || '').trim();
                       const updatedNotes = (baseNotes ? baseNotes + '\n' : '') + `--Snapshot ${monthYear}--`;
                       await updateDoc(ref, {
                         snapshots: [...existingSnapshots, snapshot],
@@ -632,6 +951,8 @@ function FieldButton({ label, value, wide, subtle }: { label: string; value: str
 }
 
 function FieldInput({ label, value, onChange, error }: { label: string; value: string; onChange: (v: string) => void; error?: string }) {
+  // Detect debug mode via global window (safe on client)
+  const debugActive = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).has('debug') : false;
   return (
     <div
       style={{
@@ -640,14 +961,17 @@ function FieldInput({ label, value, onChange, error }: { label: string; value: s
         gap: 7,
         padding: '14px 16px 18px',
         background: 'rgba(0,0,0,0.25)',
-        border: '1px solid rgba(255,255,255,0.15)',
+        border: debugActive ? '2px solid #0f0' : '1px solid rgba(255,255,255,0.15)',
         borderRadius: 10,
         minHeight: 80,
         color: '#eee',
         fontFamily: 'inherit',
         fontSize: 14,
         lineHeight: 1.3,
-        whiteSpace: 'normal'
+        whiteSpace: 'normal',
+        pointerEvents: 'auto',
+        position: 'relative',
+        zIndex: 3
       }}
     >
       <span style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.5px', opacity: 0.65 }}>{label}</span>
