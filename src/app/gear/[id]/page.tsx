@@ -2,7 +2,7 @@
 import React from 'react';
 import { getDb } from '@/lib/firebase';
 import type { GearDoc, GearSetupSnapshot } from '@/types/schema';
-import { GUITAR_TUNINGS, GUITAR_STRING_GAUGES, STRING_MANUFACTURERS, PICKUP_MANUFACTURERS } from '@/types/schema';
+import { GUITAR_TUNINGS, GUITAR_STRING_GAUGES, STRING_MANUFACTURERS, PICKUP_MANUFACTURERS, GEAR_ADD_CATEGORIES } from '@/types/schema';
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useToast } from '@/contexts/ToastContext';
@@ -182,6 +182,36 @@ export default function GearDetailPage() {
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: 100, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div style={{ background: '#222', borderRadius: 16, boxShadow: '0 4px 32px rgba(0,0,0,0.4)', padding: '32px 36px', minWidth: 320, maxWidth: '90vw', color: '#fff', display: 'flex', flexDirection: 'column', gap: 18 }}>
             <h3 style={{ margin: 0, fontSize: 22 }}>Settings</h3>
+            {/* Kind (classification) selector */}
+            {gear && (
+              <label style={{ display: 'grid', gap: 6 }}>
+                <span>Classification (kind)</span>
+                <select
+                  value={gear.kind}
+                  style={{ padding: '8px 10px', border: '1px solid #444', borderRadius: 8, background: '#222', color: '#fff' }}
+                  onChange={async (e) => {
+                    const newKind = e.target.value as typeof gear.kind;
+                    if (newKind === gear.kind) return;
+                    if (!gear.id) return;
+                    const db = getDb();
+                    if (!db) return;
+                    try {
+                      const { doc, updateDoc } = await import('firebase/firestore');
+                      const ref = doc(db, 'gear', gear.id);
+                      await updateDoc(ref, { kind: newKind });
+                      gear.kind = newKind;
+                    } catch (err) {
+                      console.error('Failed to update kind', err);
+                    }
+                  }}
+                >
+                  {GEAR_ADD_CATEGORIES.map(c => (
+                    <option key={c.value} value={c.value}>{c.label}</option>
+                  ))}
+                </select>
+                <small style={{ opacity: 0.7 }}>Change overall item classification (e.g. Guitar → Amplifiers/Effects).</small>
+              </label>
+            )}
             {/* Number of strings dropdown for guitar and bass */}
             {gear && (gear.kind === 'guitar' || gear.kind === 'bass') && (
               <label style={{ display: 'grid', gap: 6 }}>
@@ -227,6 +257,7 @@ export default function GearDetailPage() {
                 // Pass all gear info to add page via query params
                 const params = new URLSearchParams();
                 if (gear) {
+                  if (gear.id) params.set('id', gear.id);
                   if (gear.kind) params.set('kind', gear.kind);
                   if (gear.kindDetail) params.set('kindDetail', gear.kindDetail);
                   if (gear.brand) params.set('brand', gear.brand);
@@ -320,6 +351,21 @@ export default function GearDetailPage() {
             <GuitarSetupFields gear={gear} notes={gear.notes} />
           )}
         </>
+      ) : !loading && gear && (gear.kind === 'amplifiers-effects' || gear.kind === 'amp') ? (
+        <>
+          {/* Amplifier backdrop */}
+          <div style={{ position: 'absolute', inset: 0, width: '100vw', height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none', zIndex: 0 }}>
+            <Image
+              src="/branding/Amp backdrop.png"
+              alt="Amplifier Backdrop"
+              width={900}
+              height={900}
+              style={{ objectFit: 'contain', opacity: 0.20, maxWidth: '80vw', maxHeight: '80vh', pointerEvents: 'none' }}
+              priority
+            />
+          </div>
+          <AmpSetupFields gear={gear} />
+        </>
       ) : (
         // ...existing code for other gear types...
         <div style={{ position: 'relative', zIndex: 1 }}>
@@ -332,6 +378,34 @@ export default function GearDetailPage() {
 
 
 // ...existing code...
+
+function AmpSetupFields({ gear }: { gear: GearDoc }) {
+  return (
+    <div
+      style={{
+        width: '90vw',
+        maxWidth: 1200,
+        margin: '220px auto 90px',
+        padding: '0 12px',
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+        gap: 18,
+        alignItems: 'stretch',
+        position: 'relative',
+        zIndex: 2
+      }}
+    >
+      <div style={{ gridColumn: '1 / -1', background: 'rgba(0,0,0,0.30)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 12, padding: '18px 20px', color: '#eee', display: 'grid', gap: 14 }}>
+        <div style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: '.5px', opacity: .65 }}>Amplifier Overview</div>
+        <div style={{ fontSize: 15, fontWeight: 600 }}>
+          {gear.nickname ? `${gear.nickname} — ` : ''}{[gear.brand, gear.model].filter(Boolean).join(' ') || 'Amplifier'}
+          {gear.serialNumber ? ` — ${gear.serialNumber}` : ''}
+        </div>
+        <div style={{ fontSize: 13, lineHeight: 1.5, opacity: .8 }}>Custom amplifier/effects layout coming next. This page intentionally omits guitar setup fields.</div>
+      </div>
+    </div>
+  );
+}
 
 function GuitarSetupFields({ gear, notes }: { gear: GearDoc; notes?: string }) {
   // Extract snapshot from URL if present

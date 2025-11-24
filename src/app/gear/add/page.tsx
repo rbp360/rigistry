@@ -32,7 +32,7 @@ function ImagePreviewWithError({ src, alt, onError }: ImagePreviewWithErrorProps
 import type { GearDoc, GearKind, GearCategory, CatalogSourceMeta } from '@/types/schema';
 import { GEAR_ADD_CATEGORIES } from '@/types/schema';
 import CloudinaryUploader from '@/components/CloudinaryUploader';
-import { createGearItem } from '@/lib/db';
+import { createGearItem, updateGearItem } from '@/lib/db';
 import { fetchStockImageForBrandModel } from '@/lib/reverb';
 import KindDetailAutocomplete from '@/components/KindDetailAutocomplete';
 import BrandAutocomplete from '@/components/BrandAutocomplete';
@@ -50,10 +50,13 @@ export default function AddGearPage() {
     : '/rigistry';
   // Read query params for pre-fill
   const [form, setForm] = useState<Partial<GearDoc>>({ kind: 'guitar' });
+  const [editingId, setEditingId] = useState<string | null>(null);
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
       const updates: Partial<GearDoc> = {};
+      const idParam = params.get('id');
+      if (idParam) setEditingId(idParam);
       if (params.get('kind')) updates.kind = params.get('kind') as GearKind;
       if (params.get('kindDetail')) updates.kindDetail = params.get('kindDetail') || undefined;
       if (params.get('brand')) updates.brand = params.get('brand') || undefined;
@@ -64,6 +67,35 @@ export default function AddGearPage() {
       if (params.get('imageUrl')) updates.imageUrl = params.get('imageUrl') || undefined;
       // Only update if any present
       if (Object.keys(updates).length > 0) setForm(f => ({ ...f, ...updates }));
+      // If editing existing gear, fetch latest to avoid stale data
+      if (idParam) {
+        (async () => {
+          try {
+            const { doc, getDoc } = await import('firebase/firestore');
+            const dbMod = await import('@/lib/firebase');
+            const db = dbMod.getDb();
+            if (!db) return;
+            const ref = doc(db, 'gear', idParam);
+            const snap = await getDoc(ref);
+            if (snap.exists()) {
+              const d = snap.data();
+              setForm(f => ({
+                ...f,
+                kind: d.kind || f.kind,
+                kindDetail: d.kindDetail || f.kindDetail,
+                brand: d.brand || f.brand,
+                model: d.model || f.model,
+                serialNumber: d.serialNumber || f.serialNumber,
+                color: d.color || f.color,
+                notes: d.notes || f.notes,
+                imageUrl: d.imageUrl || f.imageUrl,
+              }));
+            }
+          } catch (err) {
+            console.error('Failed to hydrate edit form', err);
+          }
+        })();
+      }
     }
   }, []);
   const [saving, setSaving] = useState(false);
@@ -85,21 +117,39 @@ export default function AddGearPage() {
     }
     setSaving(true);
     try {
-      const saved = await createGearItem({
-        ownerId: user.uid,
-        kind: form.kind as GearKind,
-        kindDetail: form.kindDetail?.trim() || undefined,
-        brand: form.brand?.trim() || undefined,
-        model: form.model?.trim() || undefined,
-        serialNumber: form.serialNumber?.trim() || undefined,
-        color: form.color?.trim() || undefined,
-        notes: form.notes?.trim() || undefined,
-        imageUrl: form.imageUrl || undefined,
-      });
-      if (saved) {
-        // Use replace for immediate navigation, avoiding history issues
-        router.replace(`/gear/${saved.id}`);
-        return;
+      if (editingId) {
+        const ok = await updateGearItem(editingId, {
+          kind: form.kind as GearKind,
+          kindDetail: form.kindDetail?.trim() || undefined,
+          brand: form.brand?.trim() || undefined,
+          model: form.model?.trim() || undefined,
+          serialNumber: form.serialNumber?.trim() || undefined,
+          color: form.color?.trim() || undefined,
+          notes: form.notes?.trim() || undefined,
+          imageUrl: form.imageUrl || undefined,
+        });
+        if (ok) {
+          router.replace(`/gear/${editingId}`);
+          return;
+        } else {
+          throw new Error('Update failed');
+        }
+      } else {
+        const saved = await createGearItem({
+          ownerId: user.uid,
+          kind: form.kind as GearKind,
+          kindDetail: form.kindDetail?.trim() || undefined,
+          brand: form.brand?.trim() || undefined,
+          model: form.model?.trim() || undefined,
+          serialNumber: form.serialNumber?.trim() || undefined,
+          color: form.color?.trim() || undefined,
+          notes: form.notes?.trim() || undefined,
+          imageUrl: form.imageUrl || undefined,
+        });
+        if (saved) {
+          router.replace(`/gear/${saved.id}`);
+          return;
+        }
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to save gear';
@@ -128,8 +178,8 @@ export default function AddGearPage() {
           ← Back
         </button>
       </div>
-      <h1 style={{ fontFamily: 'var(--font-tungstern)' }}>Add Gear</h1>
-      <p>Add an instrument or accessory to your collection.</p>
+      <h1 style={{ fontFamily: 'var(--font-tungstern)' }}>{editingId ? 'Edit Gear' : 'Add Gear'}</h1>
+      <p>{editingId ? 'Modify classification or details for this item.' : 'Add an instrument or accessory to your collection.'}</p>
 
       {!user && (
         <p style={{ color: 'crimson' }}>You must sign in to add gear.</p>
@@ -291,7 +341,7 @@ export default function AddGearPage() {
             disabled={!user || saving || fetchingImage}
             style={{ background: '#111', color: '#fff', padding: '8px 14px', borderRadius: 8, border: '1px solid #222', cursor: 'pointer' }}
           >
-            {saving ? 'Saving…' : 'Save gear'}
+            {saving ? 'Saving…' : editingId ? 'Update gear' : 'Save gear'}
           </button>
           {fetchingImage && form.imageUrl && (
             <span style={{ color: '#c00', fontSize: 13 }}>Please wait for image to finish processing.</span>
