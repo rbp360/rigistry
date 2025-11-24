@@ -12,11 +12,11 @@ type ImagePreviewWithErrorProps = {
 
 function ImagePreviewWithError({ src, alt, onError }: ImagePreviewWithErrorProps) {
   const [errored, setErrored] = useState(false);
-  useEffect(() => { setErrored(false); }, [src]);
   return (
     <div style={{ display: 'grid', gap: 6 }}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
+        key={src}
         src={src}
         alt={alt}
         style={{ maxWidth: 320, borderRadius: 8 }}
@@ -69,7 +69,7 @@ export default function AddGearPage() {
   const [saving, setSaving] = useState(false);
   const [fetchingImage, setFetchingImage] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
-  const [imagePick, setImagePick] = useState(0); // index into alternate Reverb listings
+  // Removed unused imagePick state that tracked alternate Reverb listings
   const { addToast } = useToast();
 
   const router = useRouter();
@@ -233,7 +233,6 @@ export default function AddGearPage() {
                   onClick={async () => {
                     if (!form.brand) return;
                     setFetchingImage(true);
-                    setImagePick(0);
                     let usedFallback = false;
                     if (form.model) {
                       const result = await fetchStockImageForBrandModel(form.brand, form.model, form.color, 0);
@@ -277,7 +276,6 @@ export default function AddGearPage() {
             />
           )}
 
-// ...existing code...
 
           {form.catalogSource?.source === 'reverb' && (
             <div style={{ fontSize: 11, opacity: 0.7 }}>Stock image from Reverb.com</div>

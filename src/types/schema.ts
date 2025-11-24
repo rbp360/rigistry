@@ -1,3 +1,22 @@
+// Common string gauge set names (simplified) by string count
+export const GUITAR_STRING_GAUGES: Record<number, string[]> = {
+  6: [
+    '008-038',
+    '009-042',
+    '009-046',
+    '010-046',
+    '010-052',
+    '011-048',
+    '011-050',
+    '012-054',
+    '013-056',
+    '013-062',
+    '014-068',
+    '016-070',
+    'CUSTOM'
+  ]
+  // Additional string counts (7,8) can be added later as needed
+};
 // Common guitar tunings by string count
 export const GUITAR_TUNINGS: Record<number, Array<{ name: string; notes: string[] }>> = {
    6: [
@@ -65,6 +84,48 @@ export const GUITAR_TUNINGS: Record<number, Array<{ name: string; notes: string[
     { name: 'Open G', notes: ['D', 'D', 'G', 'G', 'D', 'D', 'G', 'G', 'B', 'B', 'D', 'D'] },
   ],
 };
+// Common string manufacturers for guitar/bass setup fields
+export const STRING_MANUFACTURERS = [
+  'Ernie Ball',
+  'D’Addario',
+  'Elixir',
+  'DR Strings',
+  'GHS',
+  'Rotosound',
+  'Martin',
+  'Gibson',
+  'Fender',
+  'Cleartone',
+  'La Bella',
+  'SIT Strings',
+  'CUSTOM'
+] as const;
+export type StringManufacturer = typeof STRING_MANUFACTURERS[number];
+// Common pickup manufacturers
+export const PICKUP_MANUFACTURERS = [
+  'Seymour Duncan',
+  'DiMarzio',
+  'EMG',
+  'Fender',
+  'Gibson',
+  'Bare Knuckle Pickups',
+  'Fishman (Fluence)',
+  'Lollar Pickups',
+  'TV Jones',
+  'Lindy Fralin Pickups',
+  'Mojotone',
+  'Suhr Pickups',
+  'PRS (Paul Reed Smith) Pickups',
+  'Railhammer Pickups',
+  'Wilkinson',
+  'Gretsch Pickups',
+  'Kent Armstrong Pickups',
+  'Bill Lawrence (Wilde Pickups)',
+  'Häussel Pickups',
+  'ToneRider Pickups',
+  'CUSTOM'
+] as const;
+export type PickupManufacturer = typeof PICKUP_MANUFACTURERS[number];
 // High-level gear classification used across catalog & rig nodes
 // New top-level categories for Add Gear (20 categories provided by product):
 export type GearCategory =
@@ -207,8 +268,14 @@ export interface UserDoc {
      imageUrl?: string; // hosted image URL (Cloudinary/Firebase Storage/Manufacturer)
     // Number of strings (for guitar/bass features)
     numberOfStrings?: number;
+      // String manufacturer / brand for current set (optional)
+      stringManufacturer?: string;
+      // Pickup manufacturer (primary set installed)
+      pickupManufacturer?: string;
     // Optional deeper metadata for search/filtering (extensible)
     specs?: Record<string, string | number | boolean>;
+      // Historical setup snapshots allowing user to archive past configurations
+      snapshots?: GearSetupSnapshot[];
      catalogSource?: CatalogSourceMeta;
      room?: string; // room assignment (e.g. 'guitar-amp', 'drum', etc.)
      archived?: boolean; // soft delete / hide from active lists
@@ -216,6 +283,18 @@ export interface UserDoc {
      createdAt?: FirebaseFirestoreTimestamp;
      updatedAt?: FirebaseFirestoreTimestamp;
    }
+
+  // Snapshot of a gear setup captured by user
+  export interface GearSetupSnapshot {
+    savedAt: number; // epoch milliseconds
+    monthYear: string; // mm/yy string for quick display
+    stringManufacturer?: string;
+    pickupManufacturer?: string;
+    numberOfStrings?: number;
+    tuning?: string;
+    stringGauge?: string;
+    notes?: string; // notes field content at time of snapshot
+  }
 
 export interface RigDoc {
   id?: string;

@@ -1,9 +1,10 @@
 'use client';
 import { getDb } from '@/lib/firebase';
 import type { GearDoc } from '@/types/schema';
-import { GUITAR_TUNINGS } from '@/types/schema';
+import { GUITAR_TUNINGS, GUITAR_STRING_GAUGES, STRING_MANUFACTURERS, PICKUP_MANUFACTURERS } from '@/types/schema';
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { useToast } from '@/contexts/ToastContext';
 import Image from 'next/image';
 // Removed logo.dev fallback in favor of server-scraped brand logos
 
@@ -45,6 +46,9 @@ export default function GearDetailPage() {
             imageUrl: d.imageUrl ?? undefined,
             specs: d.specs ?? undefined,
             catalogSource: d.catalogSource ?? undefined,
+            stringManufacturer: d.stringManufacturer ?? undefined,
+            pickupManufacturer: d.pickupManufacturer ?? undefined,
+            snapshots: d.snapshots ?? [],
             archived: d.archived ?? false,
             createdAt: d.createdAt ?? null,
             updatedAt: d.updatedAt ?? null,
@@ -271,6 +275,23 @@ function GuitarSetupFields({ gear, notes }: { gear: GearDoc; notes?: string }) {
   const [dateSetup, setDateSetup] = useState('');
   const [dateStrungError, setDateStrungError] = useState('');
   const [dateSetupError, setDateSetupError] = useState('');
+  const [stringBrand, setStringBrand] = useState<string>(() => gear.stringManufacturer || STRING_MANUFACTURERS[0]);
+  const [customBrand, setCustomBrand] = useState<string>('');
+  const [pickupBrand, setPickupBrand] = useState<string>(() => gear.pickupManufacturer || PICKUP_MANUFACTURERS[0]);
+  const [customPickup, setCustomPickup] = useState<string>('');
+  const [tuningName, setTuningName] = useState<string>(() => {
+    const num = typeof gear?.numberOfStrings === 'number' ? gear.numberOfStrings : 6;
+    const tunings = GUITAR_TUNINGS[num] || GUITAR_TUNINGS[6];
+    return tunings[0]?.name || '';
+  });
+  const [stringGauge, setStringGauge] = useState<string>(() => {
+    const num = typeof gear?.numberOfStrings === 'number' ? gear.numberOfStrings : 6;
+    const gauges = GUITAR_STRING_GAUGES[num] || GUITAR_STRING_GAUGES[6];
+    return gauges[0] || '';
+  });
+  const [showSnapshotExplain, setShowSnapshotExplain] = useState(false);
+  const [snapshotSaving, setSnapshotSaving] = useState(false);
+  const { addToast } = useToast();
 
   function autocompleteDate(val: string): string {
     // Remove non-digits
@@ -351,23 +372,126 @@ function GuitarSetupFields({ gear, notes }: { gear: GearDoc; notes?: string }) {
     >
       {/* Tuning dropdown, options based on numberOfStrings */}
       <div style={{ display: 'grid', gap: 6 }}>
-        <span style={{ fontWeight: 500, fontSize: 15 }}>Tuning</span>
+        <span className="setup-label">Tuning</span>
         <select
           style={{ padding: '8px 10px', border: '1px solid #444', borderRadius: 8, background: '#222', color: '#fff' }}
-          defaultValue={(() => {
-            const num = typeof gear?.numberOfStrings === 'number' ? gear.numberOfStrings : 6;
-            const tunings = GUITAR_TUNINGS[num] || GUITAR_TUNINGS[6];
-            return tunings[0]?.name || '';
-          })()}
+          value={tuningName}
+          onChange={e => setTuningName(e.target.value)}
         >
           {(GUITAR_TUNINGS[(typeof gear?.numberOfStrings === 'number' ? gear.numberOfStrings : 6)] || GUITAR_TUNINGS[6]).map((tuning) => (
             <option key={tuning.name} value={tuning.name}>{tuning.name}</option>
           ))}
         </select>
       </div>
-      <FieldButton label="String gauge" value="—" />
-      <FieldButton label="String type / manufacturer" value="—" />
-      <FieldButton label="Pickups" value="—" />
+      <div style={{ display: 'grid', gap: 6 }}>
+        <span className="setup-label">String gauge</span>
+        <select
+          style={{ padding: '8px 10px', border: '1px solid #444', borderRadius: 8, background: '#222', color: '#fff' }}
+          value={stringGauge}
+          onChange={e => setStringGauge(e.target.value)}
+        >
+          {(GUITAR_STRING_GAUGES[(typeof gear?.numberOfStrings === 'number' ? gear.numberOfStrings : 6)] || GUITAR_STRING_GAUGES[6]).map(g => (
+            <option key={g} value={g}>{g}</option>
+          ))}
+        </select>
+      </div>
+      <div style={{ display: 'grid', gap: 6 }}>
+        <span className="setup-label">String type / manufacturer</span>
+        <select
+          style={{ padding: '8px 10px', border: '1px solid #444', borderRadius: 8, background: '#222', color: '#fff' }}
+          value={stringBrand}
+          onChange={async (e) => {
+            const val = e.target.value;
+            setStringBrand(val);
+            if (val !== 'CUSTOM') {
+              setCustomBrand('');
+              if (gear.id) {
+                const db = getDb();
+                if (db) {
+                  const { doc, updateDoc } = await import('firebase/firestore');
+                  const ref = doc(db, 'gear', gear.id);
+                  await updateDoc(ref, { stringManufacturer: val });
+                  gear.stringManufacturer = val;
+                }
+              }
+            }
+          }}
+        >
+          {STRING_MANUFACTURERS.map(m => (
+            <option key={m} value={m}>{m}</option>
+          ))}
+        </select>
+        {stringBrand === 'CUSTOM' && (
+          <input
+            type="text"
+            placeholder="Enter custom brand"
+            value={customBrand}
+            onChange={async (e) => {
+              const val = e.target.value;
+              setCustomBrand(val);
+            }}
+            onBlur={async () => {
+              if (gear.id) {
+                const db = getDb();
+                if (db) {
+                  const { doc, updateDoc } = await import('firebase/firestore');
+                  const ref = doc(db, 'gear', gear.id);
+                  await updateDoc(ref, { stringManufacturer: customBrand || null });
+                  gear.stringManufacturer = customBrand || undefined;
+                }
+              }
+            }}
+            style={{ padding: '8px 10px', border: '1px solid #444', borderRadius: 8, background: '#222', color: '#fff' }}
+          />
+        )}
+      </div>
+      <div style={{ display: 'grid', gap: 6 }}>
+        <span className="setup-label">Pickups</span>
+        <select
+          style={{ padding: '8px 10px', border: '1px solid #444', borderRadius: 8, background: '#222', color: '#fff' }}
+          value={pickupBrand}
+          onChange={async (e) => {
+            const val = e.target.value;
+            setPickupBrand(val);
+            if (val !== 'CUSTOM') {
+              setCustomPickup('');
+              if (gear.id) {
+                const db = getDb();
+                if (db) {
+                  const { doc, updateDoc } = await import('firebase/firestore');
+                  const ref = doc(db, 'gear', gear.id);
+                  await updateDoc(ref, { pickupManufacturer: val });
+                  gear.pickupManufacturer = val;
+                }
+              }
+            }
+          }}
+        >
+          {PICKUP_MANUFACTURERS.map(m => (
+            <option key={m} value={m}>{m}</option>
+          ))}
+        </select>
+        {pickupBrand === 'CUSTOM' && (
+          <input
+            type="text"
+            placeholder="Enter custom pickup manufacturer"
+            value={customPickup}
+            onChange={(e) => setCustomPickup(e.target.value)}
+            onBlur={async () => {
+              if (gear.id) {
+                const db = getDb();
+                if (db) {
+                  const { doc, updateDoc } = await import('firebase/firestore');
+                  const ref = doc(db, 'gear', gear.id);
+                  await updateDoc(ref, { pickupManufacturer: customPickup || null });
+                  gear.pickupManufacturer = customPickup || undefined;
+                }
+              }
+            }}
+            style={{ padding: '8px 10px', border: '1px solid #444', borderRadius: 8, background: '#222', color: '#fff' }}
+          />
+        )}
+      </div>
       <FieldInput
         label="Date strung"
         value={formatDateSlashes(dateStrung)}
@@ -391,6 +515,87 @@ function GuitarSetupFields({ gear, notes }: { gear: GearDoc; notes?: string }) {
       <FieldButton label="Set-up notes" value="—" wide />
       <FieldButton label="Notes" value={notes || '—'} wide />
       <FieldButton label="Advanced / settings" value="Placeholder (future setup panel)" wide subtle />
+      {/* Snapshot button positioned bottom-right of viewport */}
+      <div style={{ position: 'fixed', bottom: 18, right: 18, zIndex: 50, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8 }}>
+        <button
+          type="button"
+          onClick={() => setShowSnapshotExplain(true)}
+          style={{ background: '#2563eb', color: '#fff', border: '1px solid #144c99', padding: '10px 18px', fontSize: 14, borderRadius: 8, cursor: 'pointer', fontWeight: 600, boxShadow: '0 3px 12px rgba(0,0,0,0.35)' }}
+        >
+          Save snapshot to archive
+        </button>
+      </div>
+      {showSnapshotExplain && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ background: '#222', color: '#fff', padding: '28px 32px', borderRadius: 16, width: 'min(460px,90vw)', display: 'grid', gap: 18, boxShadow: '0 4px 28px rgba(0,0,0,0.45)' }}>
+            <h4 style={{ margin: 0, fontSize: 20 }}>Archive Setup Snapshot</h4>
+            <p style={{ margin: 0, fontSize: 14, lineHeight: 1.5 }}>
+              Save your current settings (strings, pickups, tuning, gauge and notes) into the archive. This lets you re-set-up your instrument later and keep a record of modifications or past set-ups. Nothing is cleared; the current gear values stay in place.
+            </p>
+            <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
+              <button
+                type="button"
+                onClick={() => setShowSnapshotExplain(false)}
+                style={{ background: '#444', color: '#fff', border: '1px solid #555', padding: '8px 14px', borderRadius: 8, cursor: 'pointer', fontSize: 14 }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={snapshotSaving}
+                onClick={async () => {
+                  if (!gear.id) return;
+                  setSnapshotSaving(true);
+                  try {
+                    const now = new Date();
+                    const mm = String(now.getMonth() + 1).padStart(2, '0');
+                    const yy = String(now.getFullYear()).slice(-2);
+                    const monthYear = `${mm}/${yy}`;
+                    // Build snapshot object without any undefined fields (Firestore rejects undefined)
+                    const snapshot: { [key: string]: string | number | null } = {
+                      savedAt: now.getTime(),
+                      monthYear,
+                    };
+                    const resolvedStringBrand = stringBrand === 'CUSTOM' ? (customBrand.trim() || null) : stringBrand;
+                    if (resolvedStringBrand) snapshot.stringManufacturer = resolvedStringBrand;
+                    const resolvedPickupBrand = pickupBrand === 'CUSTOM' ? (customPickup.trim() || null) : pickupBrand;
+                    if (resolvedPickupBrand) snapshot.pickupManufacturer = resolvedPickupBrand;
+                    if (gear.numberOfStrings) snapshot.numberOfStrings = gear.numberOfStrings;
+                    if (tuningName) snapshot.tuning = tuningName;
+                    if (stringGauge) snapshot.stringGauge = stringGauge;
+                    if (notes) snapshot.notes = notes;
+                    const db = getDb();
+                    if (db) {
+                      const { doc, getDoc, updateDoc } = await import('firebase/firestore');
+                      const ref = doc(db, 'gear', gear.id);
+                      const existingSnap = await getDoc(ref);
+                      const data = existingSnap.exists() ? existingSnap.data() : {};
+                      const existingSnapshots = Array.isArray(data.snapshots) ? data.snapshots : [];
+                      const baseNotes = (data.notes || notes || '').trim();
+                      const updatedNotes = (baseNotes ? baseNotes + '\n' : '') + `--Snapshot ${monthYear}--`;
+                      await updateDoc(ref, {
+                        snapshots: [...existingSnapshots, snapshot],
+                        notes: updatedNotes,
+                      });
+                      gear.snapshots = [...existingSnapshots, snapshot];
+                      gear.notes = updatedNotes;
+                    }
+                    addToast({ type: 'success', title: 'Snapshot saved', message: `Saved setup snapshot (${monthYear})` });
+                  } catch (e) {
+                    addToast({ type: 'error', title: 'Snapshot failed', message: e instanceof Error ? e.message : 'Unknown error' });
+                  } finally {
+                    setSnapshotSaving(false);
+                    setShowSnapshotExplain(false);
+                  }
+                }}
+                style={{ background: '#2563eb', color: '#fff', border: '1px solid #144c99', padding: '8px 16px', borderRadius: 8, cursor: 'pointer', fontSize: 14, fontWeight: 600 }}
+              >
+                {snapshotSaving ? 'Saving…' : 'Save Snapshot'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

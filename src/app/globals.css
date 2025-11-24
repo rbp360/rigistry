@@ -98,3 +98,11 @@ a {
     color-scheme: dark;
   }
 }
+
+/* Shared label style for guitar/bass setup headers */
+.setup-label {
+  font-weight: 500;
+  font-size: 15px;
+  color: #f5f5f5;
+  letter-spacing: 0.25px;
+}
