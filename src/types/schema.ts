@@ -17,6 +17,34 @@ export const GUITAR_STRING_GAUGES: Record<number, string[]> = {
   ]
   // Additional string counts (7,8) can be added later as needed
 };
+// Common bass string gauge sets (approximate) by string count
+export const BASS_STRING_GAUGES: Record<number, string[]> = {
+  4: [
+    '040-100', // light
+    '045-105', // regular
+    '050-110',
+    '055-115',
+    '060-125',
+    '065-130',
+    'CUSTOM'
+  ],
+  5: [
+    '040-120',
+    '045-125',
+    '045-130',
+    '050-135',
+    '055-135',
+    '060-140',
+    'CUSTOM'
+  ],
+  6: [
+    '030-125',
+    '032-130',
+    '034-132',
+    '036-136',
+    'CUSTOM'
+  ]
+};
 // Common guitar tunings by string count
 export const GUITAR_TUNINGS: Record<number, Array<{ name: string; notes: string[] }>> = {
    6: [
@@ -83,6 +111,30 @@ export const GUITAR_TUNINGS: Record<number, Array<{ name: string; notes: string[
     { name: 'Standard (EADGBE x2)', notes: ['E', 'E', 'A', 'A', 'D', 'D', 'G', 'G', 'B', 'B', 'E', 'E'] },
     { name: 'Open G', notes: ['D', 'D', 'G', 'G', 'D', 'D', 'G', 'G', 'B', 'B', 'D', 'D'] },
   ],
+};
+// Common bass tunings by string count
+export const BASS_TUNINGS: Record<number, Array<{ name: string; notes: string[] }>> = {
+  4: [
+    { name: 'Standard', notes: ['E', 'A', 'D', 'G'] },
+    { name: 'Drop D', notes: ['D', 'A', 'D', 'G'] },
+    { name: 'Eb Standard', notes: ['Eb', 'Ab', 'Db', 'Gb'] },
+    { name: 'D Standard', notes: ['D', 'G', 'C', 'F'] },
+    { name: 'C Standard', notes: ['C', 'F', 'Bb', 'Eb'] },
+    { name: 'E Standard (Alt Octave)', notes: ['E', 'A', 'D', 'G'] },
+  ],
+  5: [
+    { name: 'Standard 5', notes: ['B', 'E', 'A', 'D', 'G'] },
+    { name: 'High C Variant', notes: ['E', 'A', 'D', 'G', 'C'] },
+    { name: 'Drop A', notes: ['A', 'E', 'A', 'D', 'G'] },
+    { name: 'Half-step Down 5', notes: ['Bb', 'Eb', 'Ab', 'Db', 'Gb'] },
+    { name: 'Whole-step Down 5', notes: ['A', 'D', 'G', 'C', 'F'] },
+  ],
+  6: [
+    { name: 'Standard 6', notes: ['B', 'E', 'A', 'D', 'G', 'C'] },
+    { name: 'Drop A 6', notes: ['A', 'E', 'A', 'D', 'G', 'C'] },
+    { name: 'Eb Standard 6', notes: ['Eb', 'Ab', 'Db', 'Gb', 'Bb', 'Eb'] },
+    { name: 'Whole-step Down 6', notes: ['A', 'D', 'G', 'C', 'F', 'Bb'] },
+  ]
 };
 // Common string manufacturers for guitar/bass setup fields
 export const STRING_MANUFACTURERS = [
@@ -268,6 +320,18 @@ export interface UserDoc {
      // Optional color/finish descriptor to refine catalog & image searches (e.g., "sunburst", "black")
      color?: string;
      notes?: string;
+     // Amplifier / effects specific settings text block (user editable)
+     ampSettings?: string;
+    // Link to external settings / preset storage (e.g., cloud folder, ToneX, Helix backup)
+    settingsFileUrl?: string;
+    // Drum-specific fields
+    drumHeadDetails?: string; // description of batter/resonant heads
+    drumHeadTension?: string; // notes on tuning/tension system values
+    drumHeadChangeDate?: string; // date last head was changed (stored as ddmmyyyy string)
+    drumBody?: string; // shell material / depth notes
+    drumModsMuffles?: string; // modifications, muffling techniques
+    drumPieces?: DrumPieceSetup[]; // array of per-piece setups
+    cymbalPieces?: CymbalPieceSetup[]; // array of per-cymbal setups
      imageUrl?: string; // hosted image URL (Cloudinary/Firebase Storage/Manufacturer)
     // Number of strings (for guitar/bass features)
     numberOfStrings?: number;
@@ -306,8 +370,39 @@ export interface UserDoc {
     tuning?: string;
     stringGauge?: string;
     notes?: string; // notes field content at time of snapshot
+    ampSettings?: string; // amplifier/effects settings text captured at time of snapshot
+    settingsFileUrl?: string; // snapshot of external settings file link
+    // Drum snapshot fields
+    drumHeadDetails?: string;
+    drumHeadTension?: string;
+    drumHeadChangeDate?: string;
+    drumBody?: string;
+    drumModsMuffles?: string;
+    drumPieces?: DrumPieceSetup[]; // snapshot of per-piece drum setup
+    cymbalPieces?: CymbalPieceSetup[]; // snapshot of cymbal setup
     nickname?: string; // nickname captured at time of snapshot
   }
+
+// Per-drum piece setup (e.g. individual snare, tom, kick)
+export interface DrumPieceSetup {
+  id: string; // client-side uuid
+  pieceType?: string; // e.g. snare, kick, rack tom, floor tom
+  headDetails?: string; // batter/resonant descriptions
+  headTension?: string; // tension metrics
+  headChangeDate?: string; // ddmmyyyy
+  body?: string; // shell material/depth
+  modsMuffles?: string; // gels, rings, tape
+}
+
+// Per-cymbal piece setup
+export interface CymbalPieceSetup {
+  id: string; // uuid
+  cymbalType?: string; // ride, crash, hi-hat top, hi-hat bottom, splash, china
+  brandModel?: string; // brand + model
+  diameter?: string; // e.g. 14", 20"
+  changeDate?: string; // ddmmyyyy (purchase or replacement date)
+  notes?: string; // optional notes (cracks, tape fixes)
+}
 
 export interface RigDoc {
   id?: string;

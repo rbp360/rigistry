@@ -1,8 +1,8 @@
 'use client';
 import React from 'react';
 import { getDb } from '@/lib/firebase';
-import type { GearDoc, GearSetupSnapshot } from '@/types/schema';
-import { GUITAR_TUNINGS, GUITAR_STRING_GAUGES, STRING_MANUFACTURERS, PICKUP_MANUFACTURERS, GEAR_ADD_CATEGORIES } from '@/types/schema';
+import type { GearDoc, GearSetupSnapshot, DrumPieceSetup, CymbalPieceSetup } from '@/types/schema';
+import { GUITAR_TUNINGS, GUITAR_STRING_GAUGES, BASS_TUNINGS, BASS_STRING_GAUGES, STRING_MANUFACTURERS, PICKUP_MANUFACTURERS, GEAR_ADD_CATEGORIES } from '@/types/schema';
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useToast } from '@/contexts/ToastContext';
@@ -97,6 +97,15 @@ export default function GearDetailPage() {
             // Map legacy friendlyName to new nickname field
             nickname: d.nickname ?? d.friendlyName ?? undefined,
             notes: d.notes ?? undefined,
+            ampSettings: d.ampSettings ?? undefined,
+            settingsFileUrl: d.settingsFileUrl ?? undefined,
+            drumHeadDetails: d.drumHeadDetails ?? undefined,
+            drumHeadTension: d.drumHeadTension ?? undefined,
+            drumHeadChangeDate: d.drumHeadChangeDate ?? undefined,
+            drumBody: d.drumBody ?? undefined,
+            drumModsMuffles: d.drumModsMuffles ?? undefined,
+            drumPieces: Array.isArray(d.drumPieces) ? d.drumPieces : [],
+            cymbalPieces: Array.isArray(d.cymbalPieces) ? d.cymbalPieces : [],
             imageUrl: d.imageUrl ?? undefined,
             specs: d.specs ?? undefined,
             catalogSource: d.catalogSource ?? undefined,
@@ -366,6 +375,21 @@ export default function GearDetailPage() {
           </div>
           <AmpSetupFields gear={gear} />
         </>
+      ) : !loading && gear && gear.kind === 'drums' ? (
+        <>
+          {/* Drum backdrop (reuse drum room) */}
+          <div style={{ position: 'absolute', inset: 0, width: '100vw', height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none', zIndex: 0 }}>
+            <Image
+              src="/branding/drum room.png"
+              alt="Drum Backdrop"
+              width={900}
+              height={900}
+              style={{ objectFit: 'contain', opacity: 0.18, maxWidth: '80vw', maxHeight: '80vh', pointerEvents: 'none' }}
+              priority
+            />
+          </div>
+          <DrumSetupFields gear={gear} />
+        </>
       ) : (
         // ...existing code for other gear types...
         <div style={{ position: 'relative', zIndex: 1 }}>
@@ -380,29 +404,285 @@ export default function GearDetailPage() {
 // ...existing code...
 
 function AmpSetupFields({ gear }: { gear: GearDoc }) {
+  // Snapshot viewing logic (similar to guitar)
+  const [activeSnapshot, setActiveSnapshot] = useState<GearSetupSnapshot | null>(null);
+  const hasSnapshotParam = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).has('snapshot') : false;
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const searchParams = new URLSearchParams(window.location.search);
+    const snapshotDate = searchParams.get('snapshot');
+    if (snapshotDate && Array.isArray(gear.snapshots)) {
+      const found = gear.snapshots.find(s => String(s.savedAt) === snapshotDate);
+      setActiveSnapshot(found || null);
+    }
+  }, [gear.snapshots]);
+  const snapshotMode = hasSnapshotParam && Boolean(activeSnapshot);
+
+  // Editable states
+  const [notesEdit, setNotesEdit] = useState<string>(gear.notes || '');
+  const [settingsEdit, setSettingsEdit] = useState<string>(gear.ampSettings || '');
+  const [settingsFileUrl, setSettingsFileUrl] = useState<string>(gear.settingsFileUrl || '');
+  const [nickname, setNickname] = useState<string>(gear.nickname || '');
+  useEffect(() => {
+    if (!snapshotMode) {
+      setNotesEdit(gear.notes || '');
+      setSettingsEdit(gear.ampSettings || '');
+      setNickname(gear.nickname || '');
+      setSettingsFileUrl(gear.settingsFileUrl || '');
+    }
+  }, [gear.notes, gear.ampSettings, gear.nickname, gear.settingsFileUrl, snapshotMode]);
+
+  const [showSnapshotExplain, setShowSnapshotExplain] = useState(false);
+  const [snapshotSaving, setSnapshotSaving] = useState(false);
+  const { addToast } = useToast();
+
+  // Provider detection for settings file URL (simple hostname / substring matching)
+  function detectSettingsProvider(rawUrl: string): { id: string; label: string; icon?: string } | null {
+    if (!rawUrl) return null;
+    let url: URL | null = null;
+    try { url = new URL(rawUrl.trim()); } catch { return null; }
+    const h = url.hostname.toLowerCase();
+    const patterns: Array<{ test: (host: string, full: string) => boolean; id: string; label: string; icon?: string }> = [
+      { test: (host) => host.includes('line6'), id: 'helix', label: 'Line 6 Helix', icon: '🎛️' },
+      { test: (host) => host.includes('kemper'), id: 'kemper', label: 'Kemper', icon: '🟩' },
+      { test: (host) => host.includes('fractal') || host.includes('axe'), id: 'axe-fx', label: 'Fractal / Axe-Fx', icon: '🟪' },
+      { test: (host, full) => host.includes('tonex') || full.includes('tonex'), id: 'tonex', label: 'ToneX', icon: '🧪' },
+      { test: (host) => host.includes('neural') || host.includes('quad-cortex'), id: 'quad-cortex', label: 'Neural DSP Quad Cortex', icon: '🧠' },
+      { test: (host) => host.includes('github'), id: 'github', label: 'GitHub', icon: '🐱' },
+      { test: (host) => host.includes('gist.github'), id: 'gist', label: 'GitHub Gist', icon: '📎' },
+      { test: (host) => host.includes('drive.google'), id: 'gdrive', label: 'Google Drive', icon: '🟦' },
+      { test: (host) => host.includes('dropbox'), id: 'dropbox', label: 'Dropbox', icon: '🟦' },
+      { test: (host) => host.includes('onedrive'), id: 'onedrive', label: 'OneDrive', icon: '🟦' },
+      { test: (host) => host.includes('mega.nz'), id: 'mega', label: 'Mega', icon: '🟥' },
+    ];
+    for (const p of patterns) {
+      if (p.test(h, rawUrl.toLowerCase())) return { id: p.id, label: p.label, icon: p.icon };
+    }
+    return { id: 'generic', label: url.hostname, icon: '🔗' };
+  }
+
   return (
     <div
       style={{
-        width: '90vw',
-        maxWidth: 1200,
+        width: '92vw',
+        maxWidth: 1400,
         margin: '220px auto 90px',
         padding: '0 12px',
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-        gap: 18,
+        gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))',
+        gap: 16,
         alignItems: 'stretch',
         position: 'relative',
         zIndex: 2
       }}
     >
-      <div style={{ gridColumn: '1 / -1', background: 'rgba(0,0,0,0.30)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 12, padding: '18px 20px', color: '#eee', display: 'grid', gap: 14 }}>
-        <div style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: '.5px', opacity: .65 }}>Amplifier Overview</div>
-        <div style={{ fontSize: 15, fontWeight: 600 }}>
-          {gear.nickname ? `${gear.nickname} — ` : ''}{[gear.brand, gear.model].filter(Boolean).join(' ') || 'Amplifier'}
-          {gear.serialNumber ? ` — ${gear.serialNumber}` : ''}
+      {snapshotMode && activeSnapshot && (
+        <div style={{ gridColumn: '1 / -1', textAlign: 'center', margin: '0 0 28px 0', position: 'relative' }}>
+          <div style={{ fontSize: 48, color: '#b00', fontWeight: 900, letterSpacing: 2 }}>{activeSnapshot.monthYear}</div>
+          <div style={{ fontSize: 18, color: '#444', marginTop: 8 }}>Historic amp/effects snapshot (read-only)</div>
+          <button
+            type="button"
+            onClick={() => { if (gear.id) window.location.href = `/gear/${gear.id}`; }}
+            style={{ position: 'absolute', top: 4, right: 4, background: '#444', color: '#fff', border: '1px solid #555', padding: '6px 12px', fontSize: 12, borderRadius: 6, cursor: 'pointer' }}
+          >Exit snapshot view</button>
         </div>
-        <div style={{ fontSize: 13, lineHeight: 1.5, opacity: .8 }}>Custom amplifier/effects layout coming next. This page intentionally omits guitar setup fields.</div>
+      )}
+      {/* Overview banner */}
+      <div style={{ gridColumn: '1 / -1', background: 'rgba(0,0,0,0.30)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 12, padding: '18px 20px', color: '#eee', display: 'grid', gap: 14 }}>
+        <div style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: '.5px', opacity: .65 }}>Amplifier / Effects Overview</div>
+        <div style={{ fontSize: 15, fontWeight: 600 }}>
+          {nickname ? `${nickname} — ` : ''}{[gear.brand, gear.model].filter(Boolean).join(' ') || 'Amplifier/Effects'}{gear.serialNumber ? ` — ${gear.serialNumber}` : ''}
+        </div>
+        <div style={{ fontSize: 13, lineHeight: 1.5, opacity: .8 }}>Use Notes and Settings sections below. Save a snapshot to archive current state.</div>
       </div>
+      {/* Nickname field */}
+      <div style={{ display: 'grid', gap: 6 }}>
+        <span style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.5px', opacity: 0.65 }}>Nickname</span>
+        <input
+          type="text"
+          value={nickname}
+          disabled={snapshotMode}
+          onChange={e => setNickname(e.target.value)}
+          onBlur={async () => {
+            if (snapshotMode || !gear.id) return;
+            const db = getDb();
+            if (!db) return;
+            try {
+              const { doc, updateDoc } = await import('firebase/firestore');
+              const ref = doc(db, 'gear', gear.id);
+              const trimmed = nickname.trim();
+              await updateDoc(ref, { nickname: trimmed || null, friendlyName: trimmed || null });
+              gear.nickname = trimmed || undefined;
+            } catch (err) { console.error('Nickname save failed', err); }
+          }}
+          placeholder="e.g. 'Main Rig', 'Studio Amp'"
+          style={{ padding: '8px 10px', border: '1px solid #444', borderRadius: 8, background: '#222', color: '#fff' }}
+        />
+      </div>
+      {/* Settings editable */}
+      {!snapshotMode && (
+        <div style={{ gridColumn: '1 / -1', display: 'grid', gap: 10 }}>
+          <div style={{ background: 'rgba(0,0,0,0.20)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 10, padding: '14px 16px 12px', color: '#eee', display: 'grid', gap: 8 }}>
+            <span style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.5px', opacity: 0.65 }}>Link to settings file</span>
+            <input
+              type="url"
+              value={settingsFileUrl}
+              onChange={e => setSettingsFileUrl(e.target.value)}
+              onBlur={async () => {
+                if (!gear.id) return; const db = getDb(); if (!db) return;
+                try { const { doc, updateDoc } = await import('firebase/firestore'); const ref = doc(db, 'gear', gear.id); await updateDoc(ref, { settingsFileUrl: settingsFileUrl.trim() || null }); (gear as GearDoc).settingsFileUrl = settingsFileUrl.trim() || undefined; } catch (err) { console.error('Settings file URL save failed', err); }
+              }}
+              placeholder="https://..."
+              style={{ padding: '8px 10px', border: '1px solid #444', borderRadius: 8, background: '#222', color: '#fff', fontSize: 15 }}
+            />
+            <small style={{ opacity: 0.55 }}>For digital gear, enter the URL of where your saved settings are stored.</small>
+            {settingsFileUrl && /^https?:\/\//i.test(settingsFileUrl.trim()) && (() => {
+              const info = detectSettingsProvider(settingsFileUrl.trim());
+              return (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 4 }}>
+                  <a
+                    href={settingsFileUrl.trim()}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ color: '#4dabf7', fontSize: 13, wordBreak: 'break-all', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                  >
+                    <span style={{ fontSize: 14 }}>{info?.icon}</span>
+                    <span style={{ fontWeight: 600 }}>Open settings file ↗</span>
+                  </a>
+                  {info && info.id !== 'generic' && (
+                    <div style={{ fontSize: 11, opacity: .7, display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <span>{info.icon}</span>
+                      <span>Detected provider: {info.label}</span>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+          </div>
+          <div style={{ background: 'rgba(0,0,0,0.25)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 10, padding: '14px 16px 12px', color: '#eee' }}>
+            <span style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.5px', opacity: 0.65 }}>Settings (editable)</span>
+            <textarea
+              value={settingsEdit}
+              onChange={e => setSettingsEdit(e.target.value)}
+              onBlur={async () => {
+                if (!gear.id) return;
+                const db = getDb();
+                if (!db) return;
+                try {
+                  const { doc, updateDoc } = await import('firebase/firestore');
+                  const ref = doc(db, 'gear', gear.id);
+                  await updateDoc(ref, { ampSettings: settingsEdit || null });
+                  (gear as GearDoc).ampSettings = settingsEdit || undefined;
+                } catch (err) { console.error('Settings save failed', err); }
+              }}
+              placeholder="Document dial positions, channel config, pedal order, etc..."
+              style={{ marginTop: 6, width: '100%', minHeight: 120, resize: 'vertical', background: '#222', color: '#fff', border: '1px solid #444', borderRadius: 8, padding: '10px 12px', fontFamily: 'inherit', fontSize: 15, lineHeight: 1.4, outline: 'none' }}
+            />
+            <small style={{ display: 'block', opacity: 0.55, marginTop: 6 }}>Blur (click outside) to auto-save.</small>
+          </div>
+        </div>
+      )}
+      {/* Notes editable */}
+      {!snapshotMode && (
+        <div style={{ gridColumn: '1 / -1', display: 'grid', gap: 10 }}>
+          <div style={{ background: 'rgba(0,0,0,0.25)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 10, padding: '14px 16px 12px', color: '#eee' }}>
+            <span style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.5px', opacity: 0.65 }}>Notes (editable)</span>
+            <textarea
+              value={notesEdit}
+              onChange={e => setNotesEdit(e.target.value)}
+              onBlur={async () => {
+                if (!gear.id) return;
+                const db = getDb();
+                if (!db) return;
+                try {
+                  const { doc, updateDoc } = await import('firebase/firestore');
+                  const ref = doc(db, 'gear', gear.id);
+                  await updateDoc(ref, { notes: notesEdit || null });
+                  gear.notes = notesEdit || undefined;
+                } catch (err) { console.error('Notes save failed', err); }
+              }}
+              placeholder="General maintenance / change log..."
+              style={{ marginTop: 6, width: '100%', minHeight: 140, resize: 'vertical', background: '#222', color: '#fff', border: '1px solid #444', borderRadius: 8, padding: '10px 12px', fontFamily: 'inherit', fontSize: 15, lineHeight: 1.4, outline: 'none' }}
+            />
+            <small style={{ display: 'block', opacity: 0.55, marginTop: 6 }}>Use markers like --Snapshot mm/yy-- to jump to historic states.</small>
+          </div>
+          <div style={{ background: 'rgba(0,0,0,0.18)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 10, padding: '12px 14px 16px', color: '#eee', fontSize: 14, lineHeight: 1.3, whiteSpace: 'pre-wrap' }}>
+            <span style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.5px', opacity: 0.65 }}>Preview</span>
+            <div style={{ fontSize: 15, fontWeight: 600, opacity: !notesEdit ? 0.45 : 0.95, marginTop: 6 }}>
+              {renderNotesWithSnapshots(notesEdit, gear)}
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Placeholder advanced/settings panel button */}
+      <FieldButton label="Advanced / settings" value="Placeholder (future amp panel)" wide subtle />
+      {!snapshotMode && (
+        <div style={{ position: 'fixed', bottom: 18, right: 18, zIndex: 50, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8 }}>
+          <button
+            type="button"
+            onClick={() => setShowSnapshotExplain(true)}
+            style={{ background: '#2563eb', color: '#fff', border: '1px solid #144c99', padding: '10px 18px', fontSize: 14, borderRadius: 8, cursor: 'pointer', fontWeight: 600, boxShadow: '0 3px 12px rgba(0,0,0,0.35)' }}
+          >Save snapshot to archive</button>
+        </div>
+      )}
+      {showSnapshotExplain && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ background: '#222', color: '#fff', padding: '28px 32px', borderRadius: 16, width: 'min(460px,90vw)', display: 'grid', gap: 18, boxShadow: '0 4px 28px rgba(0,0,0,0.45)' }}>
+            <h4 style={{ margin: 0, fontSize: 20 }}>Archive Amp/Effects Snapshot</h4>
+            <p style={{ margin: 0, fontSize: 14, lineHeight: 1.5 }}>
+              Save current nickname, notes and settings into the archive. Nothing is cleared; values stay in place for ongoing editing.
+            </p>
+            <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
+              <button
+                type="button"
+                onClick={() => setShowSnapshotExplain(false)}
+                style={{ background: '#444', color: '#fff', border: '1px solid #555', padding: '8px 14px', borderRadius: 8, cursor: 'pointer', fontSize: 14 }}
+              >Cancel</button>
+              <button
+                type="button"
+                disabled={snapshotSaving}
+                onClick={async () => {
+                  if (!gear.id) return;
+                  setSnapshotSaving(true);
+                  try {
+                    const now = new Date();
+                    const mm = String(now.getMonth() + 1).padStart(2, '0');
+                    const yy = String(now.getFullYear()).slice(-2);
+                    const monthYear = `${mm}/${yy}`;
+                    const snapshot: { [key: string]: string | number | null } = { savedAt: now.getTime(), monthYear };
+                    if (notesEdit) snapshot.notes = notesEdit;
+                    if (settingsEdit) snapshot.ampSettings = settingsEdit;
+                    if (settingsFileUrl) snapshot.settingsFileUrl = settingsFileUrl.trim();
+                    const trimmedNickname = nickname.trim();
+                    if (trimmedNickname) snapshot.nickname = trimmedNickname;
+                    const db = getDb();
+                    if (db) {
+                      const { doc, getDoc, updateDoc } = await import('firebase/firestore');
+                      const ref = doc(db, 'gear', gear.id);
+                      const existingSnap = await getDoc(ref);
+                      const data = existingSnap.exists() ? existingSnap.data() : {};
+                      const existingSnapshots = Array.isArray(data.snapshots) ? data.snapshots : [];
+                      const baseNotes = (data.notes || notesEdit || '').trim();
+                      const updatedNotes = (baseNotes ? baseNotes + '\n' : '') + `--Snapshot ${monthYear}--`;
+                      await updateDoc(ref, { snapshots: [...existingSnapshots, snapshot], notes: updatedNotes, ampSettings: settingsEdit || null });
+                      gear.snapshots = [...existingSnapshots, snapshot];
+                      gear.notes = updatedNotes;
+                      (gear as GearDoc).ampSettings = settingsEdit || undefined;
+                    }
+                    addToast({ type: 'success', title: 'Snapshot saved', message: `Saved amp/effects snapshot (${monthYear})` });
+                  } catch (e) {
+                    addToast({ type: 'error', title: 'Snapshot failed', message: e instanceof Error ? e.message : 'Unknown error' });
+                  } finally {
+                    setSnapshotSaving(false);
+                    setShowSnapshotExplain(false);
+                  }
+                }}
+                style={{ background: '#2563eb', color: '#fff', border: '1px solid #144c99', padding: '8px 16px', borderRadius: 8, cursor: 'pointer', fontSize: 14, fontWeight: 600 }}
+              >{snapshotSaving ? 'Saving…' : 'Save Snapshot'}</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -601,31 +881,43 @@ function GuitarSetupFields({ gear, notes }: { gear: GearDoc; notes?: string }) {
       {/* Tuning dropdown, options based on numberOfStrings */}
       <div style={{ display: 'grid', gap: 6 }}>
         <span className="setup-label">Tuning</span>
-        <select
-          style={{ padding: '8px 10px', border: '1px solid #444', borderRadius: 8, background: '#222', color: '#fff' }}
-          value={snapshotMode ? displayTuningName : tuningName}
-          disabled={snapshotMode}
-          onChange={e => setTuningName(e.target.value)}
-        >
-          <option value="">—</option>
-          {(GUITAR_TUNINGS[(typeof gear?.numberOfStrings === 'number' ? gear.numberOfStrings : 6)] || GUITAR_TUNINGS[6]).map((tuning) => (
-            <option key={tuning.name} value={tuning.name}>{tuning.name}</option>
-          ))}
-        </select>
+        {(() => {
+          const isBass = gear.kind === 'bass';
+          const count = typeof gear?.numberOfStrings === 'number' ? gear.numberOfStrings : (isBass ? 4 : 6);
+          const source = isBass ? (BASS_TUNINGS[count] || BASS_TUNINGS[4]) : (GUITAR_TUNINGS[count] || GUITAR_TUNINGS[6]);
+          return (
+            <select
+              style={{ padding: '8px 10px', border: '1px solid #444', borderRadius: 8, background: '#222', color: '#fff' }}
+              value={snapshotMode ? displayTuningName : tuningName}
+              disabled={snapshotMode}
+              onChange={e => setTuningName(e.target.value)}
+            >
+              <option value="">—</option>
+              {source.map(tuning => (
+                <option key={tuning.name} value={tuning.name}>{tuning.name}</option>
+              ))}
+            </select>
+          );
+        })()}
       </div>
       <div style={{ display: 'grid', gap: 6 }}>
         <span className="setup-label">String gauge</span>
-        <select
-          style={{ padding: '8px 10px', border: '1px solid #444', borderRadius: 8, background: '#222', color: '#fff' }}
-          value={snapshotMode ? displayStringGauge : stringGauge}
-          disabled={snapshotMode}
-          onChange={e => setStringGauge(e.target.value)}
-        >
-          <option value="">—</option>
-          {(GUITAR_STRING_GAUGES[(typeof gear?.numberOfStrings === 'number' ? gear.numberOfStrings : 6)] || GUITAR_STRING_GAUGES[6]).map(g => (
-            <option key={g} value={g}>{g}</option>
-          ))}
-        </select>
+        {(() => {
+          const isBass = gear.kind === 'bass';
+          const count = typeof gear?.numberOfStrings === 'number' ? gear.numberOfStrings : (isBass ? 4 : 6);
+          const source = isBass ? (BASS_STRING_GAUGES[count] || BASS_STRING_GAUGES[4]) : (GUITAR_STRING_GAUGES[count] || GUITAR_STRING_GAUGES[6]);
+          return (
+            <select
+              style={{ padding: '8px 10px', border: '1px solid #444', borderRadius: 8, background: '#222', color: '#fff' }}
+              value={snapshotMode ? displayStringGauge : stringGauge}
+              disabled={snapshotMode}
+              onChange={e => setStringGauge(e.target.value)}
+            >
+              <option value="">—</option>
+              {source.map(g => <option key={g} value={g}>{g}</option>)}
+            </select>
+          );
+        })()}
       </div>
       <div style={{ display: 'grid', gap: 6 }}>
         <span className="setup-label">String type / manufacturer</span>
@@ -1069,6 +1361,540 @@ function FieldInput({ label, value, onChange, error }: { label: string; value: s
         aria-label={label}
       />
       {error && <span style={{ color: '#c00', fontSize: 12 }}>{error}</span>}
+    </div>
+  );
+}
+
+// Drum-specific setup component
+function DrumSetupFields({ gear }: { gear: GearDoc }) {
+  const [activeSnapshot, setActiveSnapshot] = useState<GearSetupSnapshot | null>(null);
+  const hasSnapshotParam = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).has('snapshot') : false;
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const snapshotDate = new URLSearchParams(window.location.search).get('snapshot');
+    if (snapshotDate && Array.isArray(gear.snapshots)) {
+      const found = gear.snapshots.find(s => String(s.savedAt) === snapshotDate);
+      setActiveSnapshot(found || null);
+    }
+  }, [gear.snapshots]);
+  const snapshotMode = hasSnapshotParam && Boolean(activeSnapshot);
+
+  // Editable fields
+  const [nickname, setNickname] = useState<string>(gear.nickname || '');
+  const [headDetails, setHeadDetails] = useState<string>(gear.drumHeadDetails || '');
+  const [headTension, setHeadTension] = useState<string>(gear.drumHeadTension || '');
+  const [headChangeDate, setHeadChangeDate] = useState<string>(gear.drumHeadChangeDate || '');
+  const [headChangeDateError, setHeadChangeDateError] = useState<string>('');
+  const [bodyInfo, setBodyInfo] = useState<string>(gear.drumBody || '');
+  const [modsMuffles, setModsMuffles] = useState<string>(gear.drumModsMuffles || '');
+  const [notesEdit, setNotesEdit] = useState<string>(gear.notes || '');
+  const [drumPieces, setDrumPieces] = useState<Array<{ id: string; pieceType?: string; headDetails?: string; headTension?: string; headChangeDate?: string; body?: string; modsMuffles?: string }>>(
+    Array.isArray(gear.drumPieces) ? gear.drumPieces : []
+  );
+  const [cymbalPieces, setCymbalPieces] = useState<Array<{ id: string; cymbalType?: string; brandModel?: string; diameter?: string; changeDate?: string; notes?: string }>>(
+    Array.isArray(gear.cymbalPieces) ? gear.cymbalPieces : []
+  );
+  const { addToast } = useToast();
+  const [showSnapshotExplain, setShowSnapshotExplain] = useState(false);
+  const [snapshotSaving, setSnapshotSaving] = useState(false);
+
+  useEffect(() => {
+    if (!snapshotMode) {
+      setNickname(gear.nickname || '');
+      setHeadDetails(gear.drumHeadDetails || '');
+      setHeadTension(gear.drumHeadTension || '');
+      setHeadChangeDate(gear.drumHeadChangeDate || '');
+      setBodyInfo(gear.drumBody || '');
+      setModsMuffles(gear.drumModsMuffles || '');
+      setNotesEdit(gear.notes || '');
+      setDrumPieces(Array.isArray(gear.drumPieces) ? gear.drumPieces : []);
+      setCymbalPieces(Array.isArray(gear.cymbalPieces) ? gear.cymbalPieces : []);
+    }
+  }, [gear.nickname, gear.drumHeadDetails, gear.drumHeadTension, gear.drumHeadChangeDate, gear.drumBody, gear.drumModsMuffles, gear.notes, gear.drumPieces, gear.cymbalPieces, snapshotMode]);
+
+  function autocompleteDate(val: string): string {
+    let digits = val.replace(/[^\d]/g, '');
+    if (digits.length === 5) digits = '0' + digits;
+    if (digits.length === 3) digits = '0' + digits;
+    if (digits.length === 4) {
+      const year = String(new Date().getFullYear()).slice(-2);
+      digits += year;
+    }
+    if (digits.length === 6 || digits.length === 8) {
+      let day = parseInt(digits.slice(0, 2), 10);
+      let month = parseInt(digits.slice(2, 4), 10);
+      let year = digits.slice(4);
+      if (day > 31 && month <= 12) [day, month] = [month, day];
+      if (month > 12 && day <= 31) [day, month] = [month, day];
+      day = Math.max(1, Math.min(day, 31));
+      month = Math.max(1, Math.min(month, 12));
+      if (year.length === 2) year = '20' + year;
+      return `${String(day).padStart(2, '0')}${String(month).padStart(2, '0')}${year}`;
+    }
+    return digits;
+  }
+  function formatDate(val: string): string {
+    const digits = val.replace(/[^\d]/g, '');
+    if (digits.length === 8) return `${digits.slice(0,2)}/${digits.slice(2,4)}/${digits.slice(4,8)}`;
+    return val;
+  }
+  function validateDate(val: string) {
+    const re = /^(\d{2})(\d{2})(\d{2,4})$/;
+    if (!val) return '';
+    const m = val.match(re);
+    if (!m) return 'Format: ddmmyy';
+    const day = parseInt(m[1], 10);
+    const month = parseInt(m[2], 10);
+    const year = m[3].length === 2 ? 2000 + parseInt(m[3], 10) : parseInt(m[3], 10);
+    if (day < 1 || day > 31 || month < 1 || month > 12 || year < 1900) return 'Invalid date';
+    return '';
+  }
+
+  async function saveDrumPieces() {
+    if (snapshotMode || !gear.id) return;
+    const db = getDb(); if (!db) return;
+    try {
+      const { doc, updateDoc } = await import('firebase/firestore');
+      const ref = doc(db, 'gear', gear.id);
+      // Sanitize pieces (remove empty objects)
+      const cleaned = drumPieces.map(p => ({
+        id: p.id,
+        pieceType: p.pieceType || null,
+        headDetails: p.headDetails || null,
+        headTension: p.headTension || null,
+        headChangeDate: p.headChangeDate || null,
+        body: p.body || null,
+        modsMuffles: p.modsMuffles || null,
+      }));
+      await updateDoc(ref, { drumPieces: cleaned });
+      gear.drumPieces = cleaned as DrumPieceSetup[];
+    } catch (err) { console.error('Drum pieces save failed', err); }
+  }
+
+  async function saveCymbalPieces() {
+    if (snapshotMode || !gear.id) return;
+    const db = getDb(); if (!db) return;
+    try {
+      const { doc, updateDoc } = await import('firebase/firestore');
+      const ref = doc(db, 'gear', gear.id);
+      const cleaned = cymbalPieces.map(c => ({
+        id: c.id,
+        cymbalType: c.cymbalType || null,
+        brandModel: c.brandModel || null,
+        diameter: c.diameter || null,
+        changeDate: c.changeDate || null,
+        notes: c.notes || null,
+      }));
+      await updateDoc(ref, { cymbalPieces: cleaned });
+      gear.cymbalPieces = cleaned as CymbalPieceSetup[];
+    } catch (err) { console.error('Cymbal pieces save failed', err); }
+  }
+
+  return (
+    <div
+      style={{
+        width: '92vw',
+        maxWidth: 1400,
+        margin: '220px auto 90px',
+        padding: '0 12px',
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))',
+        gap: 16,
+        alignItems: 'stretch',
+        position: 'relative',
+        zIndex: 2
+      }}
+    >
+      {snapshotMode && activeSnapshot && (
+        <div style={{ gridColumn: '1 / -1', textAlign: 'center', margin: '0 0 28px 0', position: 'relative' }}>
+          <div style={{ fontSize: 48, color: '#b00', fontWeight: 900, letterSpacing: 2 }}>{activeSnapshot.monthYear}</div>
+          <div style={{ fontSize: 18, color: '#444', marginTop: 8 }}>Historic drum setup snapshot (read-only)</div>
+          <button
+            type="button"
+            onClick={() => { if (gear.id) window.location.href = `/gear/${gear.id}`; }}
+            style={{ position: 'absolute', top: 4, right: 4, background: '#444', color: '#fff', border: '1px solid #555', padding: '6px 12px', fontSize: 12, borderRadius: 6, cursor: 'pointer' }}
+          >Exit snapshot view</button>
+        </div>
+      )}
+      {/* Nickname */}
+      <div style={{ display: 'grid', gap: 6 }}>
+        <span className="setup-label">Nickname</span>
+        <input
+          type="text"
+          value={nickname}
+          disabled={snapshotMode}
+          onChange={e => setNickname(e.target.value)}
+          onBlur={async () => {
+            if (snapshotMode || !gear.id) return;
+            const db = getDb(); if (!db) return;
+            try { const { doc, updateDoc } = await import('firebase/firestore'); const ref = doc(db, 'gear', gear.id); const trimmed = nickname.trim(); await updateDoc(ref, { nickname: trimmed || null, friendlyName: trimmed || null }); gear.nickname = trimmed || undefined; } catch (err) { console.error('Nickname save failed', err); }
+          }}
+          placeholder="e.g. 'Kick A', 'Studio Snare'"
+          style={{ padding: '8px 10px', border: '1px solid #444', borderRadius: 8, background: '#222', color: '#fff' }}
+        />
+      </div>
+      {/* Head details */}
+      <div style={{ display: 'grid', gap: 6 }}>
+        <span className="setup-label">Head details</span>
+        <input
+          type="text"
+          value={headDetails}
+          disabled={snapshotMode}
+          onChange={e => setHeadDetails(e.target.value)}
+          onBlur={async () => {
+            if (snapshotMode || !gear.id) return; const db = getDb(); if (!db) return;
+            try { const { doc, updateDoc } = await import('firebase/firestore'); const ref = doc(db, 'gear', gear.id); await updateDoc(ref, { drumHeadDetails: headDetails.trim() || null }); gear.drumHeadDetails = headDetails.trim() || undefined; } catch (err) { console.error('Head details save failed', err); }
+          }}
+          placeholder="Batter: Remo Emperor | Reso: Ambassador"
+          style={{ padding: '8px 10px', border: '1px solid #444', borderRadius: 8, background: '#222', color: '#fff' }}
+        />
+      </div>
+      {/* Head tension/tuning */}
+      <div style={{ display: 'grid', gap: 6 }}>
+        <span className="setup-label">Head tension / tuning</span>
+        <input
+          type="text"
+          value={headTension}
+          disabled={snapshotMode}
+          onChange={e => setHeadTension(e.target.value)}
+          onBlur={async () => {
+            if (snapshotMode || !gear.id) return; const db = getDb(); if (!db) return;
+            try { const { doc, updateDoc } = await import('firebase/firestore'); const ref = doc(db, 'gear', gear.id); await updateDoc(ref, { drumHeadTension: headTension.trim() || null }); gear.drumHeadTension = headTension.trim() || undefined; } catch (err) { console.error('Head tension save failed', err); }
+          }}
+          placeholder="Top: 85 | Bottom: 75 (DrumDial)"
+          style={{ padding: '8px 10px', border: '1px solid #444', borderRadius: 8, background: '#222', color: '#fff' }}
+        />
+      </div>
+      {/* Head change date */}
+      <div style={{ display: 'grid', gap: 6 }}>
+        <span className="setup-label">Head change date</span>
+        <input
+          type="text"
+          value={formatDate(headChangeDate)}
+          disabled={snapshotMode}
+          onChange={e => {
+            const auto = autocompleteDate(e.target.value); setHeadChangeDate(auto); setHeadChangeDateError(validateDate(auto));
+          }}
+          onBlur={async () => {
+            if (snapshotMode || !gear.id) return; const db = getDb(); if (!db) return;
+            try { const { doc, updateDoc } = await import('firebase/firestore'); const ref = doc(db, 'gear', gear.id); await updateDoc(ref, { drumHeadChangeDate: headChangeDate || null }); gear.drumHeadChangeDate = headChangeDate || undefined; } catch (err) { console.error('Head change date save failed', err); }
+          }}
+          placeholder="ddmmyy or ddmmyyyy"
+          style={{ padding: '8px 10px', border: headChangeDateError ? '1px solid #c00' : '1px solid #444', borderRadius: 8, background: '#222', color: '#fff' }}
+          maxLength={10}
+        />
+        {headChangeDateError && <small style={{ color: '#c00' }}>{headChangeDateError}</small>}
+      </div>
+      {/* Body info */}
+      <div style={{ display: 'grid', gap: 6 }}>
+        <span className="setup-label">Body</span>
+        <input
+          type="text"
+          value={bodyInfo}
+          disabled={snapshotMode}
+          onChange={e => setBodyInfo(e.target.value)}
+          onBlur={async () => {
+            if (snapshotMode || !gear.id) return; const db = getDb(); if (!db) return;
+            try { const { doc, updateDoc } = await import('firebase/firestore'); const ref = doc(db, 'gear', gear.id); await updateDoc(ref, { drumBody: bodyInfo.trim() || null }); gear.drumBody = bodyInfo.trim() || undefined; } catch (err) { console.error('Body save failed', err); }
+          }}
+          placeholder="Maple 14x5.5 Snare"
+          style={{ padding: '8px 10px', border: '1px solid #444', borderRadius: 8, background: '#222', color: '#fff' }}
+        />
+      </div>
+      {/* Mods / muffles */}
+      <div style={{ display: 'grid', gap: 6 }}>
+        <span className="setup-label">Mods / muffles</span>
+        <input
+          type="text"
+          value={modsMuffles}
+          disabled={snapshotMode}
+          onChange={e => setModsMuffles(e.target.value)}
+          onBlur={async () => {
+            if (snapshotMode || !gear.id) return; const db = getDb(); if (!db) return;
+            try { const { doc, updateDoc } = await import('firebase/firestore'); const ref = doc(db, 'gear', gear.id); await updateDoc(ref, { drumModsMuffles: modsMuffles.trim() || null }); gear.drumModsMuffles = modsMuffles.trim() || undefined; } catch (err) { console.error('Mods/muffles save failed', err); }
+          }}
+          placeholder="MoonGel 2x | Snare wires swapped"
+          style={{ padding: '8px 10px', border: '1px solid #444', borderRadius: 8, background: '#222', color: '#fff' }}
+        />
+      </div>
+      {/* Drum pieces list */}
+      <div style={{ gridColumn: '1 / -1', display: 'grid', gap: 12, background: 'rgba(0,0,0,0.22)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 10, padding: '14px 16px' }}>
+        <span style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '.5px', opacity: .7 }}>Drum Pieces</span>
+        {drumPieces.length === 0 && <div style={{ fontSize: 13, opacity: .6 }}>No pieces added yet.</div>}
+        {drumPieces.map((p) => (
+          <div key={p.id} style={{ display: 'grid', gap: 8, gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', background: 'rgba(0,0,0,0.18)', padding: '10px 12px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.10)' }}>
+            <div style={{ display: 'grid', gap: 4 }}>
+              <span style={{ fontSize: 10, textTransform: 'uppercase', opacity: .6 }}>Type</span>
+              <input
+                type="text"
+                disabled={snapshotMode}
+                value={p.pieceType || ''}
+                onChange={e => {
+                  const val = e.target.value; setDrumPieces(cur => cur.map(cp => cp.id === p.id ? { ...cp, pieceType: val } : cp));
+                }}
+                onBlur={async () => { if (snapshotMode) return; await saveDrumPieces(); }}
+                placeholder="Snare / Kick / Tom"
+                style={{ padding: '6px 8px', border: '1px solid #444', borderRadius: 6, background: '#222', color: '#fff', fontSize: 13 }}
+              />
+            </div>
+            <div style={{ display: 'grid', gap: 4 }}>
+              <span style={{ fontSize: 10, textTransform: 'uppercase', opacity: .6 }}>Head details</span>
+              <input
+                type="text"
+                disabled={snapshotMode}
+                value={p.headDetails || ''}
+                onChange={e => { const val = e.target.value; setDrumPieces(cur => cur.map(cp => cp.id === p.id ? { ...cp, headDetails: val } : cp)); }}
+                onBlur={async () => { if (snapshotMode) return; await saveDrumPieces(); }}
+                placeholder="Batter/Reso"
+                style={{ padding: '6px 8px', border: '1px solid #444', borderRadius: 6, background: '#222', color: '#fff', fontSize: 13 }}
+              />
+            </div>
+            <div style={{ display: 'grid', gap: 4 }}>
+              <span style={{ fontSize: 10, textTransform: 'uppercase', opacity: .6 }}>Tension</span>
+              <input
+                type="text"
+                disabled={snapshotMode}
+                value={p.headTension || ''}
+                onChange={e => { const val = e.target.value; setDrumPieces(cur => cur.map(cp => cp.id === p.id ? { ...cp, headTension: val } : cp)); }}
+                onBlur={async () => { if (snapshotMode) return; await saveDrumPieces(); }}
+                placeholder="Top/Bottom values"
+                style={{ padding: '6px 8px', border: '1px solid #444', borderRadius: 6, background: '#222', color: '#fff', fontSize: 13 }}
+              />
+            </div>
+            <div style={{ display: 'grid', gap: 4 }}>
+              <span style={{ fontSize: 10, textTransform: 'uppercase', opacity: .6 }}>Change date</span>
+              <input
+                type="text"
+                disabled={snapshotMode}
+                value={formatDate(p.headChangeDate || '')}
+                onChange={e => {
+                  const raw = e.target.value; const auto = autocompleteDate(raw); setDrumPieces(cur => cur.map(cp => cp.id === p.id ? { ...cp, headChangeDate: auto } : cp));
+                }}
+                onBlur={async () => { if (snapshotMode) return; await saveDrumPieces(); }}
+                placeholder="ddmmyy"
+                style={{ padding: '6px 8px', border: '1px solid #444', borderRadius: 6, background: '#222', color: '#fff', fontSize: 13 }}
+              />
+            </div>
+            <div style={{ display: 'grid', gap: 4 }}>
+              <span style={{ fontSize: 10, textTransform: 'uppercase', opacity: .6 }}>Body</span>
+              <input
+                type="text"
+                disabled={snapshotMode}
+                value={p.body || ''}
+                onChange={e => { const val = e.target.value; setDrumPieces(cur => cur.map(cp => cp.id === p.id ? { ...cp, body: val } : cp)); }}
+                onBlur={async () => { if (snapshotMode) return; await saveDrumPieces(); }}
+                placeholder="Shell/depth"
+                style={{ padding: '6px 8px', border: '1px solid #444', borderRadius: 6, background: '#222', color: '#fff', fontSize: 13 }}
+              />
+            </div>
+            <div style={{ display: 'grid', gap: 4 }}>
+              <span style={{ fontSize: 10, textTransform: 'uppercase', opacity: .6 }}>Mods/Muffles</span>
+              <input
+                type="text"
+                disabled={snapshotMode}
+                value={p.modsMuffles || ''}
+                onChange={e => { const val = e.target.value; setDrumPieces(cur => cur.map(cp => cp.id === p.id ? { ...cp, modsMuffles: val } : cp)); }}
+                onBlur={async () => { if (snapshotMode) return; await saveDrumPieces(); }}
+                placeholder="Gels, rings..."
+                style={{ padding: '6px 8px', border: '1px solid #444', borderRadius: 6, background: '#222', color: '#fff', fontSize: 13 }}
+              />
+            </div>
+            {!snapshotMode && (
+              <button
+                type="button"
+                onClick={async () => {
+                  setDrumPieces(cur => cur.filter(cp => cp.id !== p.id));
+                  await saveDrumPieces();
+                }}
+                style={{ alignSelf: 'flex-start', background: '#b00', color: '#fff', border: '1px solid #900', padding: '6px 10px', fontSize: 12, borderRadius: 6, cursor: 'pointer', height: 'fit-content' }}
+              >Remove</button>
+            )}
+          </div>
+        ))}
+        {!snapshotMode && (
+          <button
+            type="button"
+            onClick={async () => {
+              const newPiece = { id: (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `p-${Date.now()}-${Math.random()}`), pieceType: '', headDetails: '', headTension: '', headChangeDate: '', body: '', modsMuffles: '' };
+              setDrumPieces(cur => [...cur, newPiece]);
+              await saveDrumPieces();
+            }}
+            style={{ background: '#2563eb', color: '#fff', border: '1px solid #144c99', padding: '8px 14px', fontSize: 13, borderRadius: 8, cursor: 'pointer', fontWeight: 600, boxShadow: '0 2px 6px rgba(0,0,0,0.35)', justifySelf: 'start' }}
+          >Add Piece</button>
+        )}
+      </div>
+      {/* Cymbal pieces list */}
+      <div style={{ gridColumn: '1 / -1', display: 'grid', gap: 12, background: 'rgba(0,0,0,0.22)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 10, padding: '14px 16px' }}>
+        <span style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '.5px', opacity: .7 }}>Cymbals</span>
+        {cymbalPieces.length === 0 && <div style={{ fontSize: 13, opacity: .6 }}>No cymbals added yet.</div>}
+        {cymbalPieces.map(c => (
+          <div key={c.id} style={{ display: 'grid', gap: 8, gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', background: 'rgba(0,0,0,0.18)', padding: '10px 12px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.10)' }}>
+            <div style={{ display: 'grid', gap: 4 }}>
+              <span style={{ fontSize: 10, textTransform: 'uppercase', opacity: .6 }}>Type</span>
+              <input
+                type="text"
+                disabled={snapshotMode}
+                value={c.cymbalType || ''}
+                onChange={e => setCymbalPieces(cur => cur.map(cc => cc.id === c.id ? { ...cc, cymbalType: e.target.value } : cc))}
+                onBlur={async () => { if (snapshotMode) return; await saveCymbalPieces(); }}
+                placeholder="Ride / Crash / Hi-hat top"
+                style={{ padding: '6px 8px', border: '1px solid #444', borderRadius: 6, background: '#222', color: '#fff', fontSize: 13 }}
+              />
+            </div>
+            <div style={{ display: 'grid', gap: 4 }}>
+              <span style={{ fontSize: 10, textTransform: 'uppercase', opacity: .6 }}>Brand + Model</span>
+              <input
+                type="text"
+                disabled={snapshotMode}
+                value={c.brandModel || ''}
+                onChange={e => setCymbalPieces(cur => cur.map(cc => cc.id === c.id ? { ...cc, brandModel: e.target.value } : cc))}
+                onBlur={async () => { if (snapshotMode) return; await saveCymbalPieces(); }}
+                placeholder="Zildjian K Custom"
+                style={{ padding: '6px 8px', border: '1px solid #444', borderRadius: 6, background: '#222', color: '#fff', fontSize: 13 }}
+              />
+            </div>
+            <div style={{ display: 'grid', gap: 4 }}>
+              <span style={{ fontSize: 10, textTransform: 'uppercase', opacity: .6 }}>Diameter</span>
+              <input
+                type="text"
+                disabled={snapshotMode}
+                value={c.diameter || ''}
+                onChange={e => setCymbalPieces(cur => cur.map(cc => cc.id === c.id ? { ...cc, diameter: e.target.value } : cc))}
+                onBlur={async () => { if (snapshotMode) return; await saveCymbalPieces(); }}
+                placeholder='20"'
+                style={{ padding: '6px 8px', border: '1px solid #444', borderRadius: 6, background: '#222', color: '#fff', fontSize: 13 }}
+              />
+            </div>
+            <div style={{ display: 'grid', gap: 4 }}>
+              <span style={{ fontSize: 10, textTransform: 'uppercase', opacity: .6 }}>Change date</span>
+              <input
+                type="text"
+                disabled={snapshotMode}
+                value={formatDate(c.changeDate || '')}
+                onChange={e => {
+                  const auto = autocompleteDate(e.target.value);
+                  setCymbalPieces(cur => cur.map(cc => cc.id === c.id ? { ...cc, changeDate: auto } : cc));
+                }}
+                onBlur={async () => { if (snapshotMode) return; await saveCymbalPieces(); }}
+                placeholder="ddmmyy"
+                style={{ padding: '6px 8px', border: '1px solid #444', borderRadius: 6, background: '#222', color: '#fff', fontSize: 13 }}
+              />
+            </div>
+            <div style={{ display: 'grid', gap: 4 }}>
+              <span style={{ fontSize: 10, textTransform: 'uppercase', opacity: .6 }}>Notes</span>
+              <input
+                type="text"
+                disabled={snapshotMode}
+                value={c.notes || ''}
+                onChange={e => setCymbalPieces(cur => cur.map(cc => cc.id === c.id ? { ...cc, notes: e.target.value } : cc))}
+                onBlur={async () => { if (snapshotMode) return; await saveCymbalPieces(); }}
+                placeholder="Edge ding / tape patch"
+                style={{ padding: '6px 8px', border: '1px solid #444', borderRadius: 6, background: '#222', color: '#fff', fontSize: 13 }}
+              />
+            </div>
+            {!snapshotMode && (
+              <button
+                type="button"
+                onClick={async () => { setCymbalPieces(cur => cur.filter(cc => cc.id !== c.id)); await saveCymbalPieces(); }}
+                style={{ alignSelf: 'flex-start', background: '#b00', color: '#fff', border: '1px solid #900', padding: '6px 10px', fontSize: 12, borderRadius: 6, cursor: 'pointer', height: 'fit-content' }}
+              >Remove</button>
+            )}
+          </div>
+        ))}
+        {!snapshotMode && (
+          <button
+            type="button"
+            onClick={async () => {
+              const newCymbal = { id: (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `c-${Date.now()}-${Math.random()}`), cymbalType: '', brandModel: '', diameter: '', changeDate: '', notes: '' };
+              setCymbalPieces(cur => [...cur, newCymbal]);
+              await saveCymbalPieces();
+            }}
+            style={{ background: '#2563eb', color: '#fff', border: '1px solid #144c99', padding: '8px 14px', fontSize: 13, borderRadius: 8, cursor: 'pointer', fontWeight: 600, boxShadow: '0 2px 6px rgba(0,0,0,0.35)', justifySelf: 'start' }}
+          >Add Cymbal</button>
+        )}
+      </div>
+      {/* Notes */}
+      {!snapshotMode && (
+        <div style={{ gridColumn: '1 / -1', display: 'grid', gap: 10 }}>
+          <div style={{ background: 'rgba(0,0,0,0.25)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 10, padding: '14px 16px 12px', color: '#eee' }}>
+            <span style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.5px', opacity: 0.65 }}>Notes (editable)</span>
+            <textarea
+              value={notesEdit}
+              onChange={e => setNotesEdit(e.target.value)}
+              onBlur={async () => {
+                if (!gear.id) return; const db = getDb(); if (!db) return;
+                try { const { doc, updateDoc } = await import('firebase/firestore'); const ref = doc(db, 'gear', gear.id); await updateDoc(ref, { notes: notesEdit || null }); gear.notes = notesEdit || undefined; } catch (err) { console.error('Notes save failed', err); }
+              }}
+              placeholder="Session notes, mic placement, etc..."
+              style={{ marginTop: 6, width: '100%', minHeight: 140, resize: 'vertical', background: '#222', color: '#fff', border: '1px solid #444', borderRadius: 8, padding: '10px 12px', fontFamily: 'inherit', fontSize: 15, lineHeight: 1.4, outline: 'none' }}
+            />
+            <small style={{ display: 'block', opacity: 0.55, marginTop: 6 }}>Blur to auto-save. Snapshot markers like --Snapshot mm/yy-- become clickable.</small>
+          </div>
+          <div style={{ background: 'rgba(0,0,0,0.18)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 10, padding: '12px 14px 16px', color: '#eee', fontSize: 14, lineHeight: 1.3, whiteSpace: 'pre-wrap' }}>
+            <span style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.5px', opacity: 0.65 }}>Preview</span>
+            <div style={{ fontSize: 15, fontWeight: 600, opacity: !notesEdit ? 0.45 : 0.95, marginTop: 6 }}>{renderNotesWithSnapshots(notesEdit, gear)}</div>
+          </div>
+        </div>
+      )}
+      {/* Snapshot button */}
+      {!snapshotMode && (
+        <div style={{ position: 'fixed', bottom: 18, right: 18, zIndex: 50, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8 }}>
+          <button
+            type="button"
+            onClick={() => setShowSnapshotExplain(true)}
+            style={{ background: '#2563eb', color: '#fff', border: '1px solid #144c99', padding: '10px 18px', fontSize: 14, borderRadius: 8, cursor: 'pointer', fontWeight: 600, boxShadow: '0 3px 12px rgba(0,0,0,0.35)' }}
+          >Save snapshot to archive</button>
+        </div>
+      )}
+      {showSnapshotExplain && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ background: '#222', color: '#fff', padding: '28px 32px', borderRadius: 16, width: 'min(460px,90vw)', display: 'grid', gap: 18, boxShadow: '0 4px 28px rgba(0,0,0,0.45)' }}>
+            <h4 style={{ margin: 0, fontSize: 20 }}>Archive Drum Setup Snapshot</h4>
+            <p style={{ margin: 0, fontSize: 14, lineHeight: 1.5 }}>Save current head details, tension, head change date, body, mods/muffles, nickname and notes. A marker will be appended to notes.</p>
+            <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
+              <button type="button" onClick={() => setShowSnapshotExplain(false)} style={{ background: '#444', color: '#fff', border: '1px solid #555', padding: '8px 14px', borderRadius: 8, cursor: 'pointer', fontSize: 14 }}>Cancel</button>
+              <button
+                type="button"
+                disabled={snapshotSaving}
+                onClick={async () => {
+                  if (!gear.id) return; setSnapshotSaving(true);
+                  try {
+                    const now = new Date();
+                    const mm = String(now.getMonth() + 1).padStart(2, '0');
+                    const yy = String(now.getFullYear()).slice(-2);
+                    const monthYear = `${mm}/${yy}`;
+                    const snapshot: (Partial<GearSetupSnapshot> & { savedAt: number; monthYear: string }) = { savedAt: now.getTime(), monthYear };
+                    if (nickname.trim()) snapshot.nickname = nickname.trim();
+                    if (headDetails.trim()) snapshot.drumHeadDetails = headDetails.trim();
+                    if (headTension.trim()) snapshot.drumHeadTension = headTension.trim();
+                    if (headChangeDate) snapshot.drumHeadChangeDate = headChangeDate;
+                    if (bodyInfo.trim()) snapshot.drumBody = bodyInfo.trim();
+                    if (modsMuffles.trim()) snapshot.drumModsMuffles = modsMuffles.trim();
+                    if (notesEdit) snapshot.notes = notesEdit;
+                    if (Array.isArray(drumPieces) && drumPieces.length) snapshot.drumPieces = drumPieces.map(p => ({ ...p }));
+                    if (Array.isArray(cymbalPieces) && cymbalPieces.length) snapshot.cymbalPieces = cymbalPieces.map(c => ({ ...c }));
+                    const db = getDb(); if (db) {
+                      const { doc, getDoc, updateDoc } = await import('firebase/firestore');
+                      const ref = doc(db, 'gear', gear.id);
+                      const existingSnap = await getDoc(ref);
+                      const data = existingSnap.exists() ? existingSnap.data() : {};
+                      const existingSnapshots = Array.isArray(data.snapshots) ? data.snapshots : [];
+                      const baseNotes = (data.notes || notesEdit || '').trim();
+                      const updatedNotes = (baseNotes ? baseNotes + '\n' : '') + `--Snapshot ${monthYear}--`;
+                      await updateDoc(ref, { snapshots: [...existingSnapshots, snapshot], notes: updatedNotes });
+                      gear.snapshots = [...existingSnapshots, snapshot]; gear.notes = updatedNotes;
+                    }
+                    addToast({ type: 'success', title: 'Snapshot saved', message: `Saved drum snapshot (${monthYear})` });
+                  } catch (e) {
+                    addToast({ type: 'error', title: 'Snapshot failed', message: e instanceof Error ? e.message : 'Unknown error' });
+                  } finally { setSnapshotSaving(false); setShowSnapshotExplain(false); }
+                }}
+                style={{ background: '#2563eb', color: '#fff', border: '1px solid #144c99', padding: '8px 16px', borderRadius: 8, cursor: 'pointer', fontSize: 14, fontWeight: 600 }}
+              >{snapshotSaving ? 'Saving…' : 'Save Snapshot'}</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
