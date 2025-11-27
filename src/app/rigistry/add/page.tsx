@@ -47,6 +47,8 @@ function InnerAddPage() {
   });
   const [saving, setSaving] = useState(false);
   const [fetchingImage, setFetchingImage] = useState(false);
+  const [stockPickIndex, setStockPickIndex] = useState(0);
+  const [stockFetched, setStockFetched] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const { addToast } = useToast();
   // Third-party search removed; manual entry only
@@ -201,7 +203,7 @@ function InnerAddPage() {
             setForm(f => ({ ...f, imageUrl: r.secure_url || r.url || '' }));
             addToast({ type: 'success', title: 'Upload Complete', message: 'Image uploaded' });
           }} />
-          {!form.imageUrl && (
+          {!stockFetched && !form.imageUrl && (
             <div style={{ display: 'flex', gap: 8 }}>
               <button
                 type="button"
@@ -210,8 +212,9 @@ function InnerAddPage() {
                   if (!form.brand) return;
                   setFetchingImage(true);
                   let usedFallback = false;
+                  const nextPickIndex = 0;
                   if (form.model) {
-                    const result = await fetchStockImageForBrandModel(form.brand, form.model, form.color);
+                    const result = await fetchStockImageForBrandModel(form.brand, form.model, form.color, nextPickIndex);
                     if (result.url) {
                       const src: CatalogSourceMeta = {
                         source: 'reverb',
@@ -219,6 +222,7 @@ function InnerAddPage() {
                         licenseNote: 'Display-only stock image; not for redistribution.',
                       };
                       setForm(f => ({ ...f, imageUrl: result.url ?? undefined, catalogSource: src }));
+                      setStockPickIndex(nextPickIndex);
                     } else {
                       usedFallback = true;
                     }
@@ -226,7 +230,7 @@ function InnerAddPage() {
                     usedFallback = true;
                   }
                   if (usedFallback && form.brand) {
-                    const logoUrl = `/api/brand-logo?brand=${encodeURIComponent(form.brand)}`;
+                    const logoUrl = `/api/brand-logo?brand=${encodeURIComponent(form.brand!)}`;
                     const src: CatalogSourceMeta = {
                       source: 'guitar-list',
                       attribution: 'Logo from guitar-list.com',
@@ -234,6 +238,7 @@ function InnerAddPage() {
                     };
                     setForm(f => ({ ...f, imageUrl: logoUrl, catalogSource: src }));
                   }
+                  setStockFetched(true);
                   setFetchingImage(false);
                 }}
                 style={{ background: '#222', color: '#fff', padding: '6px 12px', borderRadius: 6, fontSize: 13, border: '1px solid #333', cursor: 'pointer' }}
@@ -243,15 +248,81 @@ function InnerAddPage() {
               <small style={{ alignSelf: 'center', opacity: 0.6 }}>Uses Reverb (if model provided); otherwise falls back to guitar-list brand logo.</small>
             </div>
           )}
-          {form.imageUrl && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={form.imageUrl} alt="preview" style={{ maxWidth: 320, borderRadius: 8 }} />
-          )}
-          {form.catalogSource?.source === 'reverb' && (
-            <div style={{ fontSize: 11, opacity: 0.7 }}>Stock image from Reverb.com</div>
-          )}
-          {form.catalogSource?.source === 'guitar-list' && (
-            <div style={{ fontSize: 11, opacity: 0.7 }}>Logo from guitar-list.com</div>
+          {stockFetched && (
+            <div style={{ display: 'grid', gap: 8 }}>
+              {form.imageUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={form.imageUrl}
+                  alt="preview"
+                  style={{ maxWidth: 320, borderRadius: 8 }}
+                  onError={() => {
+                    // Attempt local fallback by kind when manufacturer/Reverb image fails
+                    const k = (form.kind || '').toLowerCase();
+                    let fb = '/branding/Studio gear brand default.png';
+                    if (k.includes('bass')) fb = '/branding/Bass gear brand default.png';
+                    else if (k.includes('drum')) fb = '/branding/Drum gear brand default.png';
+                    else if (k.includes('keyboard') || k.includes('synth') || k.includes('piano')) fb = '/branding/Keyboard gear brand default.png';
+                    else if (k.includes('live') || k.includes('stage') || k.includes('dj')) fb = '/branding/Live gear brand default.png';
+                    else if (k.includes('orchestra') || k.includes('orchestral')) fb = '/branding/Orchestra brand default.png';
+                    else if (k.includes('control') || k.includes('studio')) fb = '/branding/Studio gear brand default.png';
+                    else if (k.includes('guitar')) fb = '/branding/Bass gear brand default.png';
+                    setForm(f => ({ ...f, imageUrl: fb, catalogSource: { source: 'logo-dev', attribution: 'Local default placeholder', licenseNote: 'Internal placeholder asset.' } }));
+                  }}
+                />
+              ) : (
+                <div style={{ fontSize: 12, opacity: 0.8 }}>No image loaded (broken or unavailable).</div>
+              )}
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  disabled={fetchingImage || !form.brand || !form.model}
+                  onClick={async () => {
+                    if (!form.brand || !form.model) return;
+                    setFetchingImage(true);
+                    const next = stockPickIndex + 1;
+                    const result = await fetchStockImageForBrandModel(form.brand, form.model, form.color, next);
+                    if (result.url) {
+                      const src: CatalogSourceMeta = {
+                        source: 'reverb',
+                        attribution: result.attribution ?? 'Stock image from Reverb.com',
+                        licenseNote: 'Display-only stock image; not for redistribution.',
+                      };
+                      setForm(f => ({ ...f, imageUrl: result.url || undefined, catalogSource: src }));
+                      setStockPickIndex(next);
+                    }
+                    setFetchingImage(false);
+                  }}
+                  style={{ background: '#333', color: '#fff', padding: '6px 12px', borderRadius: 6, fontSize: 12, border: '1px solid #444', cursor: 'pointer' }}
+                >
+                  {fetchingImage ? 'Trying…' : 'Try Again'}
+                </button>
+                <button
+                  type="button"
+                  disabled={fetchingImage || !form.brand}
+                  onClick={() => {
+                    if (!form.brand) return;
+                    const logoUrl = `/api/brand-logo?brand=${encodeURIComponent(form.brand!)}`;
+                    const src: CatalogSourceMeta = {
+                      source: 'guitar-list',
+                      attribution: 'Logo from guitar-list.com',
+                      licenseNote: 'Logo used with permission via guitar-list.com; display-only.',
+                    };
+                    setForm(f => ({ ...f, imageUrl: logoUrl, catalogSource: src }));
+                  }}
+                  style={{ background: '#555', color: '#fff', padding: '6px 12px', borderRadius: 6, fontSize: 12, border: '1px solid #666', cursor: 'pointer' }}
+                >
+                  Use Manufacturer
+                </button>
+                {/* Retry Logo removed as requested */}
+              </div>
+              {form.catalogSource?.source === 'reverb' && (
+                <div style={{ fontSize: 11, opacity: 0.7 }}>Stock image from Reverb.com (pick #{stockPickIndex + 1}).</div>
+              )}
+              {form.catalogSource?.source === 'guitar-list' && (
+                <div style={{ fontSize: 11, opacity: 0.7 }}>Logo from guitar-list.com.</div>
+              )}
+            </div>
           )}
         </div>
         <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
