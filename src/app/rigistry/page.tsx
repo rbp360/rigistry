@@ -23,11 +23,6 @@ const rooms = [
     img: '/branding/drum room.png',
   },
   {
-    name: 'Vocal booth',
-    key: 'vocal',
-    img: '/branding/Vocal booth.png',
-  },
-  {
     name: 'Synthzone',
     key: 'synthzone',
     img: '/branding/Synthzone.png',
@@ -57,7 +52,6 @@ export default function RigistryPage() {
     'guitar-amp': 0,
     control: 0,
     drum: 0,
-    vocal: 0,
     synthzone: 0,
     stage: 0,
     'dj-booth': 0,
@@ -72,7 +66,6 @@ export default function RigistryPage() {
         'guitar-amp': 0,
         control: 0,
         drum: 0,
-        vocal: 0,
         synthzone: 0,
         stage: 0,
         'dj-booth': 0,
@@ -81,7 +74,7 @@ export default function RigistryPage() {
       const normalize = (r?: string): RoomKey | null => {
         if (!r) return null;
         if (r === 'live') return 'stage';
-        const valid = ['guitar-amp','control','drum','vocal','synthzone','stage','dj-booth','orchestral-pit'] as const;
+        const valid = ['guitar-amp','control','drum','synthzone','stage','dj-booth','orchestral-pit'] as const;
         return (valid as readonly string[]).includes(r) ? (r as RoomKey) : null;
       };
       for (const g of all) {

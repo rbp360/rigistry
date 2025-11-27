@@ -68,7 +68,25 @@ export default function GearDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState(false);
+  // Fallback handling for room-based backdrop images
+  const [roomBackdropSrc, setRoomBackdropSrc] = useState<string | null>(null);
   const router = useRouter();
+
+  // Map kind/category to a backdrop image path
+  const backdropForKind = (kind: string | undefined): string | null => {
+    if (!kind) return null;
+    const k = kind.toLowerCase();
+    if (k === 'guitar' || k === 'bass') return '/branding/Guitar backdrop.png';
+    if (k === 'drums') return '/branding/drum room.png';
+    if (k === 'amplifiers-effects' || k === 'amp' || k === 'cab' || k === 'pedal') return '/branding/Amp backdrop.png';
+    if (k === 'live-sound' || k === 'vocals-microphone' || k === 'microphone') return '/branding/Live backdrop.png';
+    if (k === 'studio-sound' || k === 'interface') return '/branding/Studio backdrop.png';
+    if (k === 'decks-dj' || k === 'laptop-electronic') return '/branding/DJbooth.png';
+    if (k === 'keyboard-synth-sampler' || k === 'synthesizer' || k === 'keyboard' || k === 'sampler') return '/branding/Synthzone.png';
+    if (k === 'strings' || k === 'woodwind' || k === 'brass' || k === 'percussion' || k === 'piano') return '/branding/Orchestra backdrop.png';
+    if (k === 'accessories' || k === 'accessory' || k === 'other') return '/branding/Instrument backdrop.png';
+    return null;
+  };
 
   useEffect(() => {
     const db = getDb();
@@ -144,6 +162,22 @@ export default function GearDetailPage() {
 
   // Try to get previous room from query param or fallback
   const [backHref, setBackHref] = useState<string | null>(null);
+  // Normalize various stored/friendly room strings to canonical keys
+  const normalizeRoom = (raw: string): string => {
+    const s = (raw || '').toString().trim().toLowerCase();
+    if (!s) return '';
+    if (s === 'live') return 'stage';
+    const collapsed = s.replace(/[\s_-]/g, '');
+    const dashed = s.replace(/[\s_]+/g, '-');
+    if (collapsed === 'controlroom' || dashed === 'control' || dashed === 'control-room' || dashed === 'studio' || dashed === 'studio-room') return 'control';
+    if (collapsed === 'djbooth' || dashed === 'dj-booth') return 'dj-booth';
+    if (collapsed === 'orchestralpit' || dashed === 'orchestral-pit' || collapsed === 'orchestra' || dashed === 'orchestra-pit') return 'orchestral-pit';
+    if (collapsed === 'guitaramp' || dashed === 'guitar-amp') return 'guitar-amp';
+    if (collapsed === 'drumroom' || dashed === 'drums' || dashed === 'drum') return 'drum';
+    if (dashed === 'synth-zone' || dashed === 'synthzone') return 'synthzone';
+    if (dashed === 'stage') return 'stage';
+    return dashed; // best-effort
+  };
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
@@ -153,8 +187,51 @@ export default function GearDetailPage() {
     }
   }, []);
 
+  // Reset backdrop fallback when room changes
+  useEffect(() => {
+    setRoomBackdropSrc(null);
+  }, [gear?.room]);
+
   return (
     <main style={{ position: 'relative', width: '100vw', height: '100vh', overflow: 'hidden', background: '#222' }}>
+      {/* Backdrop overlay: prefer kind-based; fallback to room-based */}
+      {!loading && gear && (() => {
+        const kindSrc = backdropForKind(gear.kind);
+        const r = String(gear.room || '');
+        const norm = normalizeRoom(r);
+        const valid = ['guitar-amp','control','drum','synthzone','stage','dj-booth','orchestral-pit'] as const;
+        const isValid = (valid as readonly string[]).includes(norm);
+        const roomPrimary = isValid && (
+          norm === 'control' ? '/branding/Studio backdrop.png'
+          : (norm === 'stage' || norm === 'synthzone' || norm === 'dj-booth') ? '/branding/Live backdrop.png'
+          : norm === 'orchestral-pit' ? '/branding/Orchestra.png'
+          : null
+        );
+        const src = kindSrc ?? (roomBackdropSrc ?? roomPrimary);
+        return src ? (
+          <div style={{ position: 'absolute', inset: 0, width: '100vw', height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none', zIndex: 0 }}>
+            <Image
+              src={src}
+              alt="Backdrop"
+              width={1400}
+              height={1400}
+              style={{ objectFit: 'contain', opacity: 0.20, maxWidth: '92vw', maxHeight: '92vh', pointerEvents: 'none' }}
+              onError={() => {
+                if (!kindSrc) {
+                  if (norm === 'control' && src !== '/branding/Control room.png') {
+                    setRoomBackdropSrc('/branding/Control room.png');
+                  } else if ((norm === 'stage' || norm === 'synthzone' || norm === 'dj-booth') && src !== '/branding/Live room.png') {
+                    setRoomBackdropSrc('/branding/Live room.png');
+                  } else if (norm === 'orchestral-pit' && src !== '/branding/Orchestra backdrop.png') {
+                    setRoomBackdropSrc('/branding/Orchestra backdrop.png');
+                  }
+                }
+              }}
+              priority
+            />
+          </div>
+        ) : null;
+      })()}
       {/* Back button to return to room */}
       {backHref && (
         <button
@@ -336,25 +413,15 @@ export default function GearDetailPage() {
               <img
                 src={src}
                 alt={gear.brand ? `${gear.brand} ${gear.model ?? ''}` : 'Gear image'}
-                style={{ width: 192, height: 192, objectFit: 'cover', borderRadius: 8, display: 'block', background: '#111' }}
+                style={{ width: 192, height: 192, objectFit: 'contain', borderRadius: 8, display: 'block', background: '#111' }}
               />
             );
           })()}
+          
         </div>
       )}
       {!loading && gear && ['guitar', 'bass'].includes(gear.kind) ? (
         <>
-          {/* Background watermark */}
-          <div style={{ position: 'absolute', inset: 0, width: '100vw', height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none', zIndex: 0 }}>
-            <Image
-              src="/branding/Guitar backdrop.png"
-              alt="Guitar/Bass Backdrop"
-              width={900}
-              height={900}
-              style={{ objectFit: 'contain', opacity: 0.15, maxWidth: '80vw', maxHeight: '80vh', pointerEvents: 'none' }}
-              priority
-            />
-          </div>
           {/* Placeholder spec panel for guitar-specific maintenance fields */}
           {(gear.kind === 'guitar' || gear.kind === 'bass') && (
             <GuitarSetupFields gear={gear} notes={gear.notes} />
@@ -362,39 +429,17 @@ export default function GearDetailPage() {
         </>
       ) : !loading && gear && (gear.kind === 'amplifiers-effects' || gear.kind === 'amp') ? (
         <>
-          {/* Amplifier backdrop */}
-          <div style={{ position: 'absolute', inset: 0, width: '100vw', height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none', zIndex: 0 }}>
-            <Image
-              src="/branding/Amp backdrop.png"
-              alt="Amplifier Backdrop"
-              width={900}
-              height={900}
-              style={{ objectFit: 'contain', opacity: 0.20, maxWidth: '80vw', maxHeight: '80vh', pointerEvents: 'none' }}
-              priority
-            />
-          </div>
           <AmpSetupFields gear={gear} />
         </>
       ) : !loading && gear && gear.kind === 'drums' ? (
         <>
-          {/* Drum backdrop (reuse drum room) */}
-          <div style={{ position: 'absolute', inset: 0, width: '100vw', height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none', zIndex: 0 }}>
-            <Image
-              src="/branding/drum room.png"
-              alt="Drum Backdrop"
-              width={900}
-              height={900}
-              style={{ objectFit: 'contain', opacity: 0.18, maxWidth: '80vw', maxHeight: '80vh', pointerEvents: 'none' }}
-              priority
-            />
-          </div>
           <DrumSetupFields gear={gear} />
         </>
       ) : (
-        // ...existing code for other gear types...
-        <div style={{ position: 'relative', zIndex: 1 }}>
-          {/* ...existing code for non-guitar/bass gear... */}
-        </div>
+        // Other gear types: render generic setup with Age (year)
+        <>
+          {gear && <GenericSetupFields gear={gear} />}
+        </>
       )}
     </main>
   );
@@ -476,17 +521,7 @@ function AmpSetupFields({ gear }: { gear: GearDoc }) {
         zIndex: 2
       }}
     >
-      {snapshotMode && activeSnapshot && (
-        <div style={{ gridColumn: '1 / -1', textAlign: 'center', margin: '0 0 28px 0', position: 'relative' }}>
-          <div style={{ fontSize: 48, color: '#b00', fontWeight: 900, letterSpacing: 2 }}>{activeSnapshot.monthYear}</div>
-          <div style={{ fontSize: 18, color: '#444', marginTop: 8 }}>Historic amp/effects snapshot (read-only)</div>
-          <button
-            type="button"
-            onClick={() => { if (gear.id) window.location.href = `/gear/${gear.id}`; }}
-            style={{ position: 'absolute', top: 4, right: 4, background: '#444', color: '#fff', border: '1px solid #555', padding: '6px 12px', fontSize: 12, borderRadius: 6, cursor: 'pointer' }}
-          >Exit snapshot view</button>
-        </div>
-      )}
+      {/* Amp-specific content below */}
       {/* Overview banner */}
       <div style={{ gridColumn: '1 / -1', background: 'rgba(0,0,0,0.30)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 12, padding: '18px 20px', color: '#eee', display: 'grid', gap: 14 }}>
         <div style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: '.5px', opacity: .65 }}>Amplifier / Effects Overview</div>
@@ -494,6 +529,38 @@ function AmpSetupFields({ gear }: { gear: GearDoc }) {
           {nickname ? `${nickname} — ` : ''}{[gear.brand, gear.model].filter(Boolean).join(' ') || 'Amplifier/Effects'}{gear.serialNumber ? ` — ${gear.serialNumber}` : ''}
         </div>
         <div style={{ fontSize: 13, lineHeight: 1.5, opacity: .8 }}>Use Notes and Settings sections below. Save a snapshot to archive current state.</div>
+      </div>
+      {/* Age (year) */}
+      <div style={{ display: 'grid', gap: 6 }}>
+        <span className="setup-label">Age (year)</span>
+        {(() => {
+          const currentYear = new Date().getFullYear();
+          const years = Array.from({ length: currentYear - 1899 }, (_, i) => 1900 + i);
+          const currentVal = snapshotMode ? '' : (gear.specs?.year ?? '');
+          return (
+            <select
+              style={{ padding: '8px 10px', border: '1px solid #444', borderRadius: 8, background: '#222', color: '#fff' }}
+              value={String(currentVal)}
+              disabled={snapshotMode}
+              onChange={async (e) => {
+                const val = e.target.value ? Number(e.target.value) : '';
+                if (gear.id) {
+                  const db = getDb();
+                  if (db) {
+                    const { doc, updateDoc } = await import('firebase/firestore');
+                    const ref = doc(db, 'gear', gear.id);
+                    await updateDoc(ref, { ['specs.year']: val === '' ? null : val });
+                  }
+                }
+              }}
+            >
+              <option value="">—</option>
+              {years.map(y => (
+                <option key={y} value={y}>{y}</option>
+              ))}
+            </select>
+          );
+        })()}
       </div>
       {/* Nickname field */}
       <div style={{ display: 'grid', gap: 6 }}>
@@ -519,6 +586,38 @@ function AmpSetupFields({ gear }: { gear: GearDoc }) {
           style={{ padding: '8px 10px', border: '1px solid #444', borderRadius: 8, background: '#222', color: '#fff' }}
         />
       </div>
+        {/* Age (year) */}
+        <div style={{ display: 'grid', gap: 6 }}>
+          <span style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.5px', opacity: 0.65 }}>Age (year)</span>
+          {(() => {
+            const currentYear = new Date().getFullYear();
+            const years = Array.from({ length: currentYear - 1899 }, (_, i) => 1900 + i);
+            const currentVal = snapshotMode ? '' : (gear.specs?.year ?? '');
+            return (
+              <select
+                style={{ padding: '8px 10px', border: '1px solid #444', borderRadius: 8, background: '#222', color: '#fff' }}
+                value={String(currentVal)}
+                disabled={snapshotMode}
+                onChange={async (e) => {
+                  const val = e.target.value ? Number(e.target.value) : '';
+                  if (gear.id) {
+                    const db = getDb();
+                    if (db) {
+                      const { doc, updateDoc } = await import('firebase/firestore');
+                      const ref = doc(db, 'gear', gear.id);
+                      await updateDoc(ref, { ['specs.year']: val === '' ? null : val });
+                    }
+                  }
+                }}
+              >
+                <option value="">—</option>
+                {years.map(y => (
+                  <option key={y} value={y}>{y}</option>
+                ))}
+              </select>
+            );
+          })()}
+        </div>
       {/* Settings editable */}
       {!snapshotMode && (
         <div style={{ gridColumn: '1 / -1', display: 'grid', gap: 10 }}>
@@ -877,6 +976,35 @@ function GuitarSetupFields({ gear, notes }: { gear: GearDoc; notes?: string }) {
           placeholder="e.g. 'Blackie', 'Old Faithful'"
           style={{ padding: '8px 10px', border: '1px solid #444', borderRadius: 8, background: '#222', color: '#fff' }}
         />
+      </div>
+      {/* Age (year) */}
+      <div style={{ display: 'grid', gap: 6 }}>
+        <span className="setup-label">Age (year)</span>
+        {(() => {
+          const currentYear = new Date().getFullYear();
+          const years = Array.from({ length: currentYear - 1899 }, (_, i) => 1900 + i);
+          const currentVal = snapshotMode ? '' : (gear.specs?.year ?? '');
+          return (
+            <select
+              style={{ padding: '8px 10px', border: '1px solid #444', borderRadius: 8, background: '#222', color: '#fff' }}
+              value={String(currentVal)}
+              disabled={snapshotMode}
+              onChange={async (e) => {
+                const val = e.target.value ? Number(e.target.value) : '';
+                if (gear.id) {
+                  const db = getDb();
+                  if (!db) return;
+                  const { doc, updateDoc } = await import('firebase/firestore');
+                  const ref = doc(db, 'gear', gear.id);
+                  await updateDoc(ref, { ['specs.year']: val === '' ? null : val });
+                }
+              }}
+            >
+              <option value="">—</option>
+              {years.map(y => <option key={y} value={y}>{y}</option>)}
+            </select>
+          );
+        })()}
       </div>
       {/* Tuning dropdown, options based on numberOfStrings */}
       <div style={{ display: 'grid', gap: 6 }}>
@@ -1365,6 +1493,105 @@ function FieldInput({ label, value, onChange, error }: { label: string; value: s
   );
 }
 
+// Generic setup for non-guitar/amp/drum kinds (live, studio, orchestral, piano, control, dj, vocal, synthzone)
+function GenericSetupFields({ gear }: { gear: GearDoc }) {
+  const [activeSnapshot, setActiveSnapshot] = useState<GearSetupSnapshot | null>(null);
+  const hasSnapshotParam = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).has('snapshot') : false;
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const snapshotDate = new URLSearchParams(window.location.search).get('snapshot');
+    if (snapshotDate && Array.isArray(gear.snapshots)) {
+      const found = gear.snapshots.find(s => String(s.savedAt) === snapshotDate);
+      setActiveSnapshot(found || null);
+    }
+  }, [gear.snapshots]);
+  const snapshotMode = hasSnapshotParam && Boolean(activeSnapshot);
+
+  const [nickname, setNickname] = useState<string>(gear.nickname || '');
+  useEffect(() => { if (!snapshotMode) setNickname(gear.nickname || ''); }, [gear.nickname, snapshotMode]);
+
+  const initialYear = (gear && 'specs' in gear ? (gear as { specs?: { year?: number } }).specs?.year : undefined);
+  const [yearState, setYearState] = useState<number | ''>(initialYear ?? '');
+  useEffect(() => {
+    if (!snapshotMode) {
+      const y = (gear && 'specs' in gear ? (gear as { specs?: { year?: number } }).specs?.year : undefined);
+      setYearState(y ?? '');
+    }
+  }, [gear, snapshotMode]);
+
+  return (
+    <div
+      style={{
+        width: '92vw',
+        maxWidth: 1400,
+        margin: '220px auto 90px',
+        padding: '0 12px',
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))',
+        gap: 16,
+        alignItems: 'stretch',
+        position: 'relative',
+        zIndex: 2
+      }}
+    >
+      {snapshotMode && activeSnapshot && (
+        <div style={{ gridColumn: '1 / -1', textAlign: 'center', margin: '0 0 28px 0', position: 'relative' }}>
+          <div style={{ fontSize: 48, color: '#b00', fontWeight: 900, letterSpacing: 2 }}>{activeSnapshot.monthYear}</div>
+          <div style={{ fontSize: 18, color: '#444', marginTop: 8 }}>Historic setup snapshot (read-only)</div>
+          <button type="button" onClick={() => { if (gear.id) window.location.href = `/gear/${gear.id}`; }} style={{ position: 'absolute', top: 4, right: 4, background: '#444', color: '#fff', border: '1px solid #555', padding: '6px 12px', fontSize: 12, borderRadius: 6, cursor: 'pointer' }}>Exit snapshot view</button>
+        </div>
+      )}
+
+      <div style={{ display: 'grid', gap: 6 }}>
+        <span className="setup-label">Nickname</span>
+        <input
+          type="text"
+          value={nickname}
+          disabled={snapshotMode}
+          onChange={e => setNickname(e.target.value)}
+          onBlur={async () => {
+            if (snapshotMode || !gear.id) return;
+            const db = getDb(); if (!db) return;
+            try { const { doc, updateDoc } = await import('firebase/firestore'); const ref = doc(db, 'gear', gear.id); const trimmed = nickname.trim(); await updateDoc(ref, { nickname: trimmed || null, friendlyName: trimmed || null }); gear.nickname = trimmed || undefined; } catch (err) { console.error('Nickname save failed', err); }
+          }}
+          placeholder="e.g. 'Main Rig', 'Studio Piece'"
+          style={{ padding: '8px 10px', border: '1px solid #444', borderRadius: 8, background: '#222', color: '#fff' }}
+        />
+      </div>
+
+      <div style={{ display: 'grid', gap: 6 }}>
+        <span className="setup-label">Age (year)</span>
+        {(() => {
+          const currentYear = new Date().getFullYear();
+          const years = Array.from({ length: currentYear - 1899 }, (_, i) => 1900 + i);
+          return (
+            <select
+              style={{ padding: '8px 10px', border: '1px solid #444', borderRadius: 8, background: '#222', color: '#fff' }}
+              value={yearState}
+              disabled={snapshotMode}
+              onChange={async (e) => {
+                const val = e.target.value ? Number(e.target.value) : '';
+                setYearState(val);
+                if (gear.id) {
+                  const db = getDb(); if (!db) return;
+                  const { doc, updateDoc } = await import('firebase/firestore');
+                  const ref = doc(db, 'gear', gear.id);
+                  await updateDoc(ref, { ['specs.year']: val === '' ? null : val });
+                  // Rely on Firestore subscription to refresh local gear state
+                }
+              }}
+            >
+              <option value="">—</option>
+              {years.map(y => <option key={y} value={y}>{y}</option>)}
+            </select>
+          );
+        })()}
+      </div>
+
+      <FieldButton label="Advanced / settings" value="Placeholder (future setup panel)" wide subtle />
+    </div>
+  );
+}
 // Drum-specific setup component
 function DrumSetupFields({ gear }: { gear: GearDoc }) {
   const [activeSnapshot, setActiveSnapshot] = useState<GearSetupSnapshot | null>(null);
@@ -1397,6 +1624,16 @@ function DrumSetupFields({ gear }: { gear: GearDoc }) {
   const { addToast } = useToast();
   const [showSnapshotExplain, setShowSnapshotExplain] = useState(false);
   const [snapshotSaving, setSnapshotSaving] = useState(false);
+
+  // Age (year) state for drums
+  const drumInitialYear = (gear && 'specs' in gear ? (gear as { specs?: { year?: number } }).specs?.year : undefined);
+  const [drumYear, setDrumYear] = useState<number | ''>(drumInitialYear ?? '');
+  useEffect(() => {
+    if (!snapshotMode) {
+      const y = (gear && 'specs' in gear ? (gear as { specs?: { year?: number } }).specs?.year : undefined);
+      setDrumYear(y ?? '');
+    }
+  }, [gear, snapshotMode]);
 
   useEffect(() => {
     if (!snapshotMode) {
@@ -1532,6 +1769,35 @@ function DrumSetupFields({ gear }: { gear: GearDoc }) {
           placeholder="e.g. 'Kick A', 'Studio Snare'"
           style={{ padding: '8px 10px', border: '1px solid #444', borderRadius: 8, background: '#222', color: '#fff' }}
         />
+      </div>
+      {/* Age (year) */}
+      <div style={{ display: 'grid', gap: 6 }}>
+        <span className="setup-label">Age (year)</span>
+        {(() => {
+          const currentYear = new Date().getFullYear();
+          const years = Array.from({ length: currentYear - 1899 }, (_, i) => 1900 + i);
+          return (
+            <select
+              style={{ padding: '8px 10px', border: '1px solid #444', borderRadius: 8, background: '#222', color: '#fff' }}
+              value={drumYear}
+              disabled={snapshotMode}
+              onChange={async (e) => {
+                const val = e.target.value ? Number(e.target.value) : '';
+                setDrumYear(val);
+                if (gear.id) {
+                  const db = getDb(); if (!db) return;
+                  const { doc, updateDoc } = await import('firebase/firestore');
+                  const ref = doc(db, 'gear', gear.id);
+                  await updateDoc(ref, { ['specs.year']: val === '' ? null : val });
+                  // Rely on Firestore subscription to refresh local gear state
+                }
+              }}
+            >
+              <option value="">—</option>
+              {years.map(y => <option key={y} value={y}>{y}</option>)}
+            </select>
+          );
+        })()}
       </div>
       {/* Head details */}
       <div style={{ display: 'grid', gap: 6 }}>

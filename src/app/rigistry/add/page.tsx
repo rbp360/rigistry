@@ -20,7 +20,6 @@ const rooms = [
   { name: 'Guitar/Amp room', key: 'guitar-amp' },
   { name: 'Control room', key: 'control' },
   { name: 'Drum room', key: 'drum' },
-  { name: 'Vocal booth', key: 'vocal' },
   { name: 'Synthzone', key: 'synthzone' },
   { name: 'Stage', key: 'stage' },
   { name: 'DJ booth', key: 'dj-booth' },

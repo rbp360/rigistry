@@ -1,0 +1,25 @@
+.backdrop {
+  position: relative;
+  min-height: calc(100vh - 140px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-image: url('/branding/logo2.png');
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+}
+
+.content {
+  text-align: center;
+  color: #ddd;
+}
+
+.title {
+  margin: 0;
+  font-size: 28px;
+}
+
+.subtitle {
+  opacity: 0.7;
+}

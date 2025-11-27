@@ -1,3 +1,7 @@
-// Add Gear page for Vocal booth
-import AddGearPage from '../../gear/add/page';
-export default AddGearPage;
+"use client";
+import { redirect } from 'next/navigation';
+
+export default function RemovedVocalAdd() {
+	// Redirect legacy /rigistry/vocal/add to Add Gear with Live suggestion
+	redirect('/rigistry/add?room=stage&kind=vocals-microphone');
+}

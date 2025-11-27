@@ -63,7 +63,7 @@ export default function RoomGearList({ room }: { room: RoomKey }) {
                     alt={g.brand || 'Gear'}
                     width={120}
                     height={120}
-                    style={{ borderRadius: 6, objectFit: 'cover', display: 'block', background: '#111' }}
+                    style={{ borderRadius: 6, objectFit: 'contain', display: 'block', background: '#111' }}
                     onError={(e) => {
                       const img = e.currentTarget as HTMLImageElement;
                       if (!img.src.endsWith('/branding/logo1.png')) {

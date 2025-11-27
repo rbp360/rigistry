@@ -246,7 +246,7 @@ export const ROOM_SUGGESTIONS: Partial<Record<GearCategory, string>> = {
   guitar: 'guitar-amp',
   bass: 'guitar-amp',
   drums: 'drum',
-  'vocals-microphone': 'vocal',
+  'vocals-microphone': 'stage',
   piano: 'orchestral-pit',
   'decks-dj': 'dj-booth',
   'laptop-electronic': 'dj-booth',
@@ -265,7 +265,6 @@ export type RoomKey =
   | 'guitar-amp'
   | 'control'
   | 'drum'
-  | 'vocal'
   | 'synthzone'
   | 'stage'
   | 'dj-booth'
@@ -276,7 +275,6 @@ export const ROOM_KIND_PRIORITIES: Record<RoomKey, GearCategory[]> = {
   'guitar-amp': ['guitar', 'bass', 'amplifiers-effects'],
   control: ['studio-sound'],
   drum: ['drums'],
-  vocal: ['vocals-microphone'],
   synthzone: ['keyboard-synth-sampler'],
   stage: ['live-sound'],
   'dj-booth': ['decks-dj', 'laptop-electronic'],
