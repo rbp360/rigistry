@@ -5,8 +5,8 @@ import RoomGearList from '../RoomGearList';
 
 export default function SynthzoneRoom() {
   return (
-    <main style={{ padding: '2rem', textAlign: 'center' }}>
-      <h1>Synthzone</h1>
+    <main style={{ padding: '2rem', textAlign: 'center', minHeight: '100vh', background: "url('/branding/logo1.png') center/contain no-repeat fixed, #000" }}>
+      <h1 style={{ color: '#22c55e' }}>Synthzone</h1>
       <Image src="/branding/Synthzone.png" alt="Synthzone" width={220} height={220} />
       <p>Add synths, keys, and electronic gear here.</p>
       <div style={{ margin: '12px 0 20px' }}>
@@ -14,7 +14,7 @@ export default function SynthzoneRoom() {
           href="/rigistry/add?room=synthzone&kind=keyboard-synth-sampler"
           style={{
             display: 'inline-block',
-            background: '#222',
+            background: '#444',
             color: '#fff',
             borderRadius: 24,
             padding: '10px 18px',

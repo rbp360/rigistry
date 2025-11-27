@@ -6,6 +6,7 @@ import { listGearByOwner } from '@/lib/db';
 import type { GearDoc, RoomKey } from '@/types/schema';
 // import Image from 'next/image'; // no longer needed after normalization
 import { useToast } from '@/contexts/ToastContext';
+import styles from './Rigistry.module.css';
 // Removed logo.dev fallback to keep image selection identical to gear detail view
 
 export default function RoomGearList({ room }: { room: RoomKey }) {
@@ -52,7 +53,7 @@ export default function RoomGearList({ room }: { room: RoomKey }) {
       {gear.map(g => (
         <div key={g.id} style={{ position: 'relative' }}>
           <a href={`/gear/${g.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
-            <div style={{ border: '1px solid #ddd', borderRadius: 8, padding: 12, background: '#fafafa', cursor: 'pointer', transition: 'box-shadow 0.2s', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}>
+            <div className={styles.gearCard} style={{ padding: 12, cursor: 'pointer' }}>
               {(() => {
                 const brandLogo = g.brand ? `/api/brand-logo?brand=${encodeURIComponent(g.brand)}` : null;
                 const src = g.imageUrl || brandLogo || '/branding/logo1.png';
@@ -89,7 +90,24 @@ export default function RoomGearList({ room }: { room: RoomKey }) {
             onClick={() => handleDelete(g.id!)}
             style={{ position: 'absolute', top: 8, right: 8, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
           >
-            <span role="img" aria-label="Delete" style={{ fontSize: 22, color: '#c00' }}>🗑️</span>
+            <span
+              aria-label="Delete"
+              style={{
+                display: 'inline-block',
+                width: 28,
+                height: 28,
+                borderRadius: '50%',
+                background: '#c00',
+                color: '#fff',
+                fontWeight: 700,
+                fontSize: 18,
+                lineHeight: '28px',
+                textAlign: 'center',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.10)'
+              }}
+            >
+              ×
+            </span>
           </button>
         </div>
       ))}

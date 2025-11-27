@@ -1,3 +1,27 @@
+/* Green outline for gear item cards on hover */
+.gearCard {
+  border: 1.5px solid #222;
+  border-radius: 8px;
+  background: #444;
+  color: #fff;
+  transition: box-shadow 0.2s, border-color 0.2s;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.10);
+}
+
+.gearCard:hover {
+  border-color: #22c55e;
+  box-shadow: 0 0 0 3px #22c55e, 0 4px 24px rgba(0,0,0,0.18);
+}
+/* Green outline for Quick Actions buttons on hover */
+.quickActionBtn {
+  transition: box-shadow 0.2s, border-color 0.2s;
+  border: 2px solid transparent;
+}
+
+.quickActionBtn:hover {
+  border: 2px solid #22c55e;
+  box-shadow: 0 0 0 2px #22c55e, 0 2px 8px rgba(0,0,0,0.10);
+}
 .rigistryMain {
   padding: 2rem;
   min-height: 100vh;
@@ -38,8 +62,8 @@
 
 @media (min-width: 900px) {
   .roomsGrid {
-    /* Three columns max on larger screens */
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    /* Four columns on larger screens */
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
 
@@ -69,7 +93,8 @@
 
 /* Active (non-grey) rooms: add a bright green outline ring */
 .activeThumb {
-  box-shadow: 0 0 0 3px #22c55e, 0 2px 12px rgba(0,0,0,0.12);
+  /* Make outline thinner so four cards fit neatly */
+  box-shadow: 0 0 0 1px #22c55e, 0 2px 12px rgba(0,0,0,0.12);
 }
 
 .roomCard:hover .roomThumb {

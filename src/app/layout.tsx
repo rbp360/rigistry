@@ -17,8 +17,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Rigistry - All Your Gear, one database",
-  description: "Rigistry: unified gear registry and management platform",
+  title: "Catalogue - All Your Gear, one database",
+  description: "Catalogue: unified gear registry and management platform",
 };
 
 export default function RootLayout({
@@ -36,27 +36,10 @@ export default function RootLayout({
           <ToastProvider>
           <header className="site-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 32px', borderBottom: '1px solid #e5e7eb', background: '#181818', color: '#f5f5f5' }}>
             <nav style={{ display: 'flex', gap: 32, fontSize: 20, fontWeight: 600 }}>
-              <Link href="/rigistry">Rigistry</Link>
-              <Link href="/messageboard">Connect/messageboard</Link>
+              <Link href="/rigistry">Catalogue</Link>
+              <Link href="/messageboard">Connect</Link>
               <Link href="/about">About</Link>
-              {/* Primary CTA: Create a Carnet */}
-              <Link
-                href="/rigistry/carnet"
-                style={{
-                  padding: '6px 16px',
-                  background: '#2563eb',
-                  color: '#ffffff',
-                  borderRadius: 6,
-                  fontSize: 16,
-                  fontWeight: 600,
-                  alignSelf: 'center',
-                  lineHeight: '24px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
-                  textDecoration: 'none'
-                }}
-              >Create a Carnet</Link>
+              {/* CTA moved to Rigistry page */}
             </nav>
             <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
               <AuthButtons />
@@ -65,11 +48,11 @@ export default function RootLayout({
           {children}
           <footer className="site-footer">
             <nav style={{ display: 'flex', gap: 32, fontSize: 16 }}>
-              <Link href="/rigistry">Rigistry</Link>
-              <Link href="/messageboard">Connect/messageboard</Link>
+              <Link href="/rigistry">Catalogue</Link>
+              <Link href="/messageboard">Connect</Link>
               <Link href="/about">About</Link>
             </nav>
-            <small>© {new Date().getFullYear()} Rigistry. All rights reserved.</small>
+            <small>© {new Date().getFullYear()} Catalogue. All rights reserved.</small>
           </footer>
           </ToastProvider>
         </AuthProvider>

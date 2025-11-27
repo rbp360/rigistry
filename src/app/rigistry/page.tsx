@@ -93,7 +93,7 @@ export default function RigistryPage() {
           +
         </Link>
       </div>
-      <div className={styles.roomsGrid}>
+      <div className={styles.roomsGrid} style={{ gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' }}>
         {rooms.map(room => (
           <Link key={room.key} href={`/rigistry/${room.key}`} className={styles.roomCard}>
             <div className={styles.cardInner}>
@@ -107,11 +107,36 @@ export default function RigistryPage() {
             </div>
           </Link>
         ))}
-      </div>
-      <div style={{ marginTop: 32, textAlign: 'center' }}>
-        <Link href="/rigistry/add" style={{ fontSize: 22, background: '#222', color: '#fff', borderRadius: 24, padding: '12px 28px', textDecoration: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.10)' }} title="Add Gear">
-          + Add Gear
-        </Link>
+        <div className={styles.roomCard} style={{ width: '100%', maxWidth: 320 }}>
+          <div className={styles.cardInner}>
+            <div className={styles.roomThumb} style={{ display: 'flex', flexDirection: 'column', gap: 12, justifyContent: 'center', alignItems: 'center', minHeight: 180, width: '160px', margin: '0 auto' }}>
+              <Link
+                href="/rigistry/add"
+                className={styles.quickActionBtn}
+                style={{ fontSize: 16, background: '#444', color: '#fff', borderRadius: 18, padding: '10px 16px', textDecoration: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.10)', width: '100%', textAlign: 'center' }}
+                title="Add Gear"
+              >
+                + Add Gear
+              </Link>
+              <Link
+                href="/rigistry/carnet"
+                className={styles.quickActionBtn}
+                style={{
+                  fontSize: 16,
+                  background: '#666',
+                  color: '#fff',
+                  borderRadius: 18,
+                  padding: '10px 16px',
+                  textDecoration: 'none',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.10)',
+                  width: '100%',
+                  textAlign: 'center'
+                }}
+              >Create a Carnet</Link>
+            </div>
+            <h2>Quick Actions</h2>
+          </div>
+        </div>
       </div>
     </main>
   );
