@@ -53,7 +53,7 @@ export default function RoomGearList({ room }: { room: RoomKey }) {
       {gear.map(g => (
         <div key={g.id} style={{ position: 'relative' }}>
           <a href={`/gear/${g.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
-            <div className={styles.gearCard} style={{ padding: 12, cursor: 'pointer' }}>
+            <div className={styles.gearCard} style={{ padding: 12, cursor: 'pointer', minHeight: 220, display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' }}>
               {(() => {
                 const brandLogo = g.brand ? `/api/brand-logo?brand=${encodeURIComponent(g.brand)}` : null;
                 const src = g.imageUrl || brandLogo || '/branding/logo1.png';
@@ -64,7 +64,7 @@ export default function RoomGearList({ room }: { room: RoomKey }) {
                     alt={g.brand || 'Gear'}
                     width={120}
                     height={120}
-                    style={{ borderRadius: 6, objectFit: 'contain', display: 'block', background: '#111' }}
+                    style={{ borderRadius: 6, objectFit: 'contain', display: 'block', background: '#444', width: '100%', height: 120 }}
                     onError={(e) => {
                       const img = e.currentTarget as HTMLImageElement;
                       if (!img.src.endsWith('/branding/logo1.png')) {
@@ -75,10 +75,13 @@ export default function RoomGearList({ room }: { room: RoomKey }) {
                 );
               })()}
               <div style={{ marginTop: 8 }}>
-                <strong>
-                  {g.nickname ? `${g.nickname} — ` : ''}{g.brand || 'Unknown'} {g.model || ''}
-                  {g.serialNumber ? ` — ${g.serialNumber}` : ''}
-                </strong>
+                <div style={{ fontWeight: 700, color: '#22c55e' }}>
+                  {g.nickname && <span>{g.nickname}</span>}
+                  {g.serialNumber && <span>{g.nickname ? ' — ' : ''}{g.serialNumber}</span>}
+                </div>
+                <div style={{ fontWeight: 700 }}>
+                  {g.brand || 'Unknown'} {g.model || ''}
+                </div>
                 <div style={{ fontSize: 13, opacity: 0.7 }}>{g.kind}</div>
                 {/* Notes removed from room listing to hide snapshot markers */}
               </div>
