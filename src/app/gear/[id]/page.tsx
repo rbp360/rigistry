@@ -7,6 +7,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useToast } from '@/contexts/ToastContext';
 import Image from 'next/image';
+import itemStyles from '../../item-pages/ItemPageCommon.module.css';
 
 // Single utility to render notes with clickable snapshot markers
 function renderNotesWithSnapshots(notes: string | undefined, gear: GearDoc) {
@@ -193,7 +194,7 @@ export default function GearDetailPage() {
   }, [gear?.room]);
 
   return (
-    <main style={{ position: 'relative', width: '100vw', height: '100vh', overflow: 'hidden', background: '#222' }}>
+    <main className={itemStyles.itemMain} style={{ position: 'relative', width: '100vw', height: '100vh', overflow: 'hidden' }}>
       {/* Backdrop overlay: prefer kind-based; fallback to room-based */}
       {!loading && gear && (() => {
         const kindSrc = backdropForKind(gear.kind);
@@ -385,7 +386,7 @@ export default function GearDetailPage() {
             backdropFilter: 'blur(2px)'
           }}
         >
-          <h1 style={{ margin: 0, fontSize: 20, lineHeight: 1.2 }}>
+          <h1 className={itemStyles.itemTitle} style={{ margin: 0, fontSize: 20, lineHeight: 1.2 }}>
             {(() => {
               const brandModel = [gear.brand, gear.model].filter(Boolean).join(' ');
               const parts: string[] = [];
@@ -413,11 +414,11 @@ export default function GearDetailPage() {
               <img
                 src={src}
                 alt={gear.brand ? `${gear.brand} ${gear.model ?? ''}` : 'Gear image'}
-                style={{ width: 192, height: 192, objectFit: 'contain', borderRadius: 8, display: 'block', background: '#111' }}
+                className={itemStyles.itemImage}
+                style={{ width: 154, height: 154 }}
               />
             );
           })()}
-          
         </div>
       )}
       {!loading && gear && ['guitar', 'bass'].includes(gear.kind) ? (
