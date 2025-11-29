@@ -200,7 +200,11 @@ export async function updateGearItem(id: string, updates: Partial<Omit<GearDoc, 
   const ref = doc(gearCol(db), id);
   // Use updateDoc to avoid converter enforcing full GearDoc and undefined required fields
   try {
-    await updateDoc(ref, { ...updates, updatedAt: serverTimestamp() });
+    // Filter out undefined values which Firestore rejects in updateDoc
+    const sanitized = Object.fromEntries(
+      Object.entries(updates).filter(([, v]) => v !== undefined)
+    ) as Partial<Omit<GearDoc, 'id' | 'createdAt' | 'updatedAt'>>;
+    await updateDoc(ref, { ...sanitized, updatedAt: serverTimestamp() });
     return true;
   } catch (e) {
     console.error('updateGearItem failed', e);

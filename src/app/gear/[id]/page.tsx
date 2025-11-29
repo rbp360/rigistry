@@ -8,6 +8,7 @@ import { useEffect, useState } from 'react';
 import { useToast } from '@/contexts/ToastContext';
 import Image from 'next/image';
 import itemStyles from '../../item-pages/ItemPageCommon.module.css';
+// ...existing imports...
 
 // Single utility to render notes with clickable snapshot markers
 function renderNotesWithSnapshots(notes: string | undefined, gear: GearDoc) {

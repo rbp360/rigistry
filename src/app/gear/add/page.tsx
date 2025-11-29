@@ -67,6 +67,10 @@ export default function AddGearPage() {
       if (params.get('imageUrl')) updates.imageUrl = params.get('imageUrl') || undefined;
       // Only update if any present
       if (Object.keys(updates).length > 0) setForm(f => ({ ...f, ...updates }));
+      // If arriving with prefilled image or brand, enable controls section
+      if (updates.imageUrl || updates.brand) {
+        setStockFetched(true);
+      }
       // If editing existing gear, fetch latest to avoid stale data
       if (idParam) {
         (async () => {
@@ -90,6 +94,9 @@ export default function AddGearPage() {
                 notes: d.notes || f.notes,
                 imageUrl: d.imageUrl || f.imageUrl,
               }));
+              if (d.imageUrl || d.brand) {
+                setStockFetched(true);
+              }
             }
           } catch (err) {
             console.error('Failed to hydrate edit form', err);
@@ -131,17 +138,23 @@ export default function AddGearPage() {
     }
     setSaving(true);
     try {
+      // Build payload without undefined values (Firestore updateDoc rejects undefined)
+      const basePayload = {
+        kind: form.kind as GearKind,
+        kindDetail: form.kindDetail?.trim() || undefined,
+        brand: form.brand?.trim() || undefined,
+        model: form.model?.trim() || undefined,
+        serialNumber: form.serialNumber?.trim() || undefined,
+        color: form.color?.trim() || undefined,
+        notes: form.notes?.trim() || undefined,
+        imageUrl: form.imageUrl || undefined,
+      } as Partial<GearDoc>;
+      const payload = Object.fromEntries(
+        Object.entries(basePayload).filter(([, v]) => v !== undefined)
+      ) as Partial<GearDoc>;
+
       if (editingId) {
-        const ok = await updateGearItem(editingId, {
-          kind: form.kind as GearKind,
-          kindDetail: form.kindDetail?.trim() || undefined,
-          brand: form.brand?.trim() || undefined,
-          model: form.model?.trim() || undefined,
-          serialNumber: form.serialNumber?.trim() || undefined,
-          color: form.color?.trim() || undefined,
-          notes: form.notes?.trim() || undefined,
-          imageUrl: form.imageUrl || undefined,
-        });
+        const ok = await updateGearItem(editingId, payload);
         if (ok) {
           router.replace(`/gear/${editingId}`);
           return;
@@ -149,17 +162,22 @@ export default function AddGearPage() {
           throw new Error('Update failed');
         }
       } else {
+        const optional = Object.fromEntries(
+          Object.entries({
+            kindDetail: form.kindDetail?.trim() || undefined,
+            brand: form.brand?.trim() || undefined,
+            model: form.model?.trim() || undefined,
+            serialNumber: form.serialNumber?.trim() || undefined,
+            color: form.color?.trim() || undefined,
+            notes: form.notes?.trim() || undefined,
+            imageUrl: form.imageUrl || undefined,
+          }).filter(([, v]) => v !== undefined)
+        );
         const saved = await createGearItem({
           ownerId: user.uid,
           kind: form.kind as GearKind,
-          kindDetail: form.kindDetail?.trim() || undefined,
-          brand: form.brand?.trim() || undefined,
-          model: form.model?.trim() || undefined,
-          serialNumber: form.serialNumber?.trim() || undefined,
-          color: form.color?.trim() || undefined,
-          notes: form.notes?.trim() || undefined,
-          imageUrl: form.imageUrl || undefined,
-        });
+          ...(optional as Partial<GearDoc>),
+        } as unknown as Omit<GearDoc, 'id' | 'createdAt' | 'updatedAt'>);
         if (saved) {
           router.replace(`/gear/${saved.id}`);
           return;
