@@ -746,8 +746,26 @@ function AmpSetupFields({ gear }: { gear: GearDoc }) {
           </div>
         </div>
       )}
-      {/* Placeholder advanced/settings panel button */}
-      <FieldButton label="Advanced / settings" value="Placeholder (future amp panel)" wide subtle />
+      {/* Advanced / settings free text */}
+      <div className={itemStyles.advancedBox}>
+        <span className={itemStyles.advancedLabel}>Advanced / settings</span>
+        <textarea
+          value={settingsEdit}
+          onChange={e => setSettingsEdit(e.target.value)}
+          onBlur={async () => {
+            if (!gear.id) return;
+            const db = getDb(); if (!db) return;
+            try {
+              const { doc, updateDoc } = await import('firebase/firestore');
+              const ref = doc(db, 'gear', gear.id);
+              await updateDoc(ref, { ampSettings: (settingsEdit || '').trim() || null });
+              (gear as GearDoc).ampSettings = (settingsEdit || '').trim() || undefined;
+            } catch (err) { console.error('Advanced/settings save failed', err); }
+          }}
+          placeholder="Amplifier or effects settings, chain notes, etc."
+          className={itemStyles.advancedTextarea}
+        />
+      </div>
       {!snapshotMode && (
         <div style={{ position: 'fixed', bottom: 18, right: 18, zIndex: 50, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8 }}>
           <button
@@ -1349,9 +1367,7 @@ function GuitarSetupFields({ gear, notes }: { gear: GearDoc; notes?: string }) {
                 outline: 'none'
               }}
             />
-            <small style={{ display: 'block', opacity: 0.55, marginTop: 6 }}>
-              Blur (click outside) to auto-save. Snapshot markers like --Snapshot mm/yy-- will become clickable after saving.
-            </small>
+            {/* Removed instructional helper text per request */}
           </div>
           <div style={{ background: 'rgba(0,0,0,0.18)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 10, padding: '12px 14px 16px', color: '#eee', fontSize: 14, lineHeight: 1.3, whiteSpace: 'pre-wrap' }}>
             <span style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.5px', opacity: 0.65 }}>Preview</span>
@@ -1361,7 +1377,21 @@ function GuitarSetupFields({ gear, notes }: { gear: GearDoc; notes?: string }) {
           </div>
         </div>
       )}
-      <FieldButton label="Advanced / settings" value="Placeholder (future setup panel)" wide subtle />
+      {/* Advanced / settings free text for generic rooms */}
+      <div style={{ gridColumn: '1 / -1' }} className={itemStyles.advancedBox}>
+        <span className={itemStyles.advancedLabel}>Advanced / settings</span>
+        <textarea
+          value={notesEdit}
+          onChange={e => setNotesEdit(e.target.value)}
+          onBlur={async () => {
+            if (!gear.id) return;
+            const db = getDb(); if (!db) return;
+            try { const { doc, updateDoc } = await import('firebase/firestore'); const ref = doc(db, 'gear', gear.id); await updateDoc(ref, { notes: notesEdit || null }); gear.notes = notesEdit || undefined; } catch (err) { console.error('Advanced/settings save failed', err); }
+          }}
+          placeholder="Technical settings, patch notes, chain details…"
+          className={itemStyles.advancedTextarea}
+        />
+      </div>
       {/* Removed duplicate snapshot button at bottom of page */}
       {showSnapshotExplain && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -1444,36 +1474,7 @@ function GuitarSetupFields({ gear, notes }: { gear: GearDoc; notes?: string }) {
   );
 }
 
-function FieldButton({ label, value, wide, subtle }: { label: string; value: string; wide?: boolean; subtle?: boolean }) {
-  return (
-    <button
-      type="button"
-      style={{
-        gridColumn: wide ? '1 / -1' : undefined,
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'space-between',
-        alignItems: 'flex-start',
-        padding: '14px 16px 18px',
-        background: subtle ? 'transparent' : 'rgba(0,0,0,0.25)',
-        border: '1px solid rgba(255,255,255,0.15)',
-        borderRadius: 10,
-        cursor: 'default',
-        minHeight: 80,
-        textAlign: 'left',
-        color: '#eee',
-        fontFamily: 'inherit',
-        fontSize: 14,
-        lineHeight: 1.3,
-        whiteSpace: 'normal'
-      }}
-      aria-label={label}
-    >
-      <span style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.5px', opacity: 0.65 }}>{label}</span>
-      <span style={{ fontSize: 15, fontWeight: 600, opacity: value === '—' ? 0.45 : 0.95 }}>{value}</span>
-    </button>
-  );
-}
+// Removed FieldButton placeholder component in favor of free text areas.
 
 function FieldInput({ label, value, onChange, error }: { label: string; value: string; onChange: (v: string) => void; error?: string }) {
   // Detect debug mode via global window (safe on client)
@@ -1540,6 +1541,9 @@ function GenericSetupFields({ gear }: { gear: GearDoc }) {
 
   const [nickname, setNickname] = useState<string>(gear.nickname || '');
   useEffect(() => { if (!snapshotMode) setNickname(gear.nickname || ''); }, [gear.nickname, snapshotMode]);
+  // Free text notes for generic rooms
+  const [genericNotes, setGenericNotes] = useState<string>(gear.notes || '');
+  useEffect(() => { if (!snapshotMode) setGenericNotes(gear.notes || ''); }, [gear.notes, snapshotMode]);
 
   const initialYear = (gear && 'specs' in gear ? (gear as { specs?: { year?: number } }).specs?.year : undefined);
   const [yearState, setYearState] = useState<number | ''>(initialYear ?? '');
@@ -1619,7 +1623,21 @@ function GenericSetupFields({ gear }: { gear: GearDoc }) {
         })()}
       </div>
 
-      <FieldButton label="Advanced / settings" value="Placeholder (future setup panel)" wide subtle />
+      {/* Advanced / settings free text for generic rooms */}
+      <div style={{ gridColumn: '1 / -1' }} className={itemStyles.advancedBox}>
+        <span className={itemStyles.advancedLabel}>Advanced / settings</span>
+        <textarea
+          value={genericNotes}
+          onChange={e => setGenericNotes(e.target.value)}
+          onBlur={async () => {
+            if (!gear.id) return;
+            const db = getDb(); if (!db) return;
+            try { const { doc, updateDoc } = await import('firebase/firestore'); const ref = doc(db, 'gear', gear.id); await updateDoc(ref, { notes: genericNotes || null }); gear.notes = genericNotes || undefined; } catch (err) { console.error('Advanced/settings save failed', err); }
+          }}
+          placeholder="Technical settings, patch notes, chain details…"
+          className={itemStyles.advancedTextarea}
+        />
+      </div>
     </div>
   );
 }
@@ -2125,7 +2143,7 @@ function DrumSetupFields({ gear }: { gear: GearDoc }) {
               placeholder="Session notes, mic placement, etc..."
               style={{ marginTop: 6, width: '100%', minHeight: 140, resize: 'vertical', background: '#222', color: '#fff', border: '1px solid #444', borderRadius: 8, padding: '10px 12px', fontFamily: 'inherit', fontSize: 15, lineHeight: 1.4, outline: 'none' }}
             />
-            <small style={{ display: 'block', opacity: 0.55, marginTop: 6 }}>Blur to auto-save. Snapshot markers like --Snapshot mm/yy-- become clickable.</small>
+            {/* Removed instructional helper text per request */}
           </div>
           <div style={{ background: 'rgba(0,0,0,0.18)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 10, padding: '12px 14px 16px', color: '#eee', fontSize: 14, lineHeight: 1.3, whiteSpace: 'pre-wrap' }}>
             <span style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.5px', opacity: 0.65 }}>Preview</span>
