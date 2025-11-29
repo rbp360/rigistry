@@ -288,7 +288,7 @@ export default function AddGearPage() {
               addToast({ type: 'success', message: 'Image uploaded', title: 'Upload Complete' });
             }}
           />
-          {!stockFetched && (!form.imageUrl || form.imageUrl === '') && (
+          {(!form.imageUrl || form.imageUrl === '') && (
             <div style={{ display: 'flex', gap: 8 }}>
               <button
                 type="button"
