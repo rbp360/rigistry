@@ -14,7 +14,7 @@ export default function BackdropCheck() {
     <main style={{ padding: 24, color: "#fff", background: "#111", minHeight: "100vh" }}>
       <h1 style={{ marginBottom: 16 }}>Backdrop Image Check</h1>
       <p style={{ opacity: 0.8, marginBottom: 16 }}>
-        This page renders each image twice: once with Next/Image and once with plain HTML <img>.
+        This page renders each image twice: once with Next/Image and once with plain HTML &lt;img&gt;.
       </p>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 16 }}>
         {items.map((it) => (

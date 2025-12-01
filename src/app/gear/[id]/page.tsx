@@ -73,6 +73,7 @@ export default function GearDetailPage() {
   // Fallback handling for room-based backdrop images
   const [roomBackdropSrc, setRoomBackdropSrc] = useState<string | null>(null);
   const router = useRouter();
+  // Toast available in some subcomponents; use alert fallback here if needed
 
   // Map kind/category to a backdrop image path
   const backdropForKind = (kind: string | undefined): string | null => {
@@ -193,6 +194,8 @@ export default function GearDetailPage() {
   useEffect(() => {
     setRoomBackdropSrc(null);
   }, [gear?.room]);
+
+  // Legacy global event listener removed; modal now opens via URL param `openSnapshot`
 
   return (
     <main className={itemStyles.itemMain} style={{ position: 'relative', width: '100vw', height: '100vh', overflow: 'hidden' }}>
@@ -429,8 +432,10 @@ export default function GearDetailPage() {
               <button
                 type="button"
                 onClick={() => {
-                  const event = new CustomEvent('showSnapshotExplain');
-                  window.dispatchEvent(event);
+                  if (typeof window !== 'undefined') {
+                    // Directly request opening the snapshot modal via a custom event
+                    window.dispatchEvent(new Event('openGearSnapshot'));
+                  }
                 }}
                 style={{
                   background: '#222',
@@ -512,6 +517,24 @@ function AmpSetupFields({ gear }: { gear: GearDoc }) {
 
   const [showSnapshotExplain, setShowSnapshotExplain] = useState(false);
   const [snapshotSaving, setSnapshotSaving] = useState(false);
+    // Open modal whenever URL has openSnapshot=1 (supports in-page button via popstate)
+    useEffect(() => {
+      if (typeof window === 'undefined') return;
+      const checkAndOpen = () => {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('openSnapshot') === '1') {
+          setShowSnapshotExplain(true);
+          params.delete('openSnapshot');
+          const url = new URL(window.location.href);
+          url.search = params.toString();
+          window.history.replaceState({}, '', url.toString());
+        }
+      };
+      checkAndOpen();
+      const handler = () => checkAndOpen();
+      window.addEventListener('popstate', handler);
+      return () => window.removeEventListener('popstate', handler);
+    }, []);
   const { addToast } = useToast();
 
   // Provider detection for settings file URL (simple hostname / substring matching)
@@ -739,7 +762,7 @@ function AmpSetupFields({ gear }: { gear: GearDoc }) {
             <small style={{ display: 'block', opacity: 0.55, marginTop: 6 }}>Use markers like --Snapshot mm/yy-- to jump to historic states.</small>
           </div>
           <div style={{ background: 'rgba(0,0,0,0.18)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 10, padding: '12px 14px 16px', color: '#eee', fontSize: 14, lineHeight: 1.3, whiteSpace: 'pre-wrap' }}>
-            <span style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.5px', opacity: 0.65 }}>Preview</span>
+            <span style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.5px', opacity: 0.65 }}>View snapshots</span>
             <div style={{ fontSize: 15, fontWeight: 600, opacity: !notesEdit ? 0.45 : 0.95, marginTop: 6 }}>
               {renderNotesWithSnapshots(notesEdit, gear)}
             </div>
@@ -795,33 +818,28 @@ function AmpSetupFields({ gear }: { gear: GearDoc }) {
                   if (!gear.id) return;
                   setSnapshotSaving(true);
                   try {
-                    const now = new Date();
-                    const mm = String(now.getMonth() + 1).padStart(2, '0');
-                    const yy = String(now.getFullYear()).slice(-2);
-                    const monthYear = `${mm}/${yy}`;
-                    const snapshot: { [key: string]: string | number | null } = { savedAt: now.getTime(), monthYear };
-                    if (notesEdit) snapshot.notes = notesEdit;
-                    if (settingsEdit) snapshot.ampSettings = settingsEdit;
-                    if (settingsFileUrl) snapshot.settingsFileUrl = settingsFileUrl.trim();
-                    const trimmedNickname = nickname.trim();
-                    if (trimmedNickname) snapshot.nickname = trimmedNickname;
-                    const db = getDb();
-                    if (db) {
-                      const { doc, getDoc, updateDoc } = await import('firebase/firestore');
-                      const ref = doc(db, 'gear', gear.id);
-                      const existingSnap = await getDoc(ref);
-                      const data = existingSnap.exists() ? existingSnap.data() : {};
-                      const existingSnapshots = Array.isArray(data.snapshots) ? data.snapshots : [];
-                      const baseNotes = (data.notes || notesEdit || '').trim();
-                      const updatedNotes = (baseNotes ? baseNotes + '\n' : '') + `--Snapshot ${monthYear}--`;
-                      await updateDoc(ref, { snapshots: [...existingSnapshots, snapshot], notes: updatedNotes, ampSettings: settingsEdit || null });
-                      gear.snapshots = [...existingSnapshots, snapshot];
-                      gear.notes = updatedNotes;
-                      (gear as GearDoc).ampSettings = settingsEdit || undefined;
+                    const { saveSetupSnapshot } = await import('@/lib/snapshots');
+                    const { snapshot, updatedNotes } = await saveSetupSnapshot(gear.id, {
+                      notes: notesEdit,
+                      ampSettings: settingsEdit,
+                      settingsFileUrl: settingsFileUrl,
+                      nickname: nickname,
+                    });
+                    gear.snapshots = Array.isArray(gear.snapshots) ? [...gear.snapshots, snapshot] : [snapshot];
+                    gear.notes = updatedNotes;
+                    (gear as GearDoc).ampSettings = (settingsEdit || '').trim() || undefined;
+                    setNotesEdit(updatedNotes);
+                    if (typeof window !== 'undefined') {
+                      const url = new URL(window.location.href);
+                      url.searchParams.set('snapshot', String(snapshot.savedAt));
+                      window.history.replaceState({}, '', url.toString());
                     }
-                    addToast({ type: 'success', title: 'Snapshot saved', message: `Saved amp/effects snapshot (${monthYear})` });
+                    const mm = String(new Date(snapshot.savedAt).getMonth() + 1).padStart(2, '0');
+                    const yy = String(new Date(snapshot.savedAt).getFullYear()).slice(-2);
+                    addToast({ type: 'success', title: 'Snapshot saved', message: `Saved setup snapshot (${mm}/${yy})` });
                   } catch (e) {
-                    addToast({ type: 'error', title: 'Snapshot failed', message: e instanceof Error ? e.message : 'Unknown error' });
+                    const msg = e instanceof Error ? e.message : 'Unknown error';
+                    addToast({ type: 'error', title: 'Snapshot failed', message: msg });
                   } finally {
                     setSnapshotSaving(false);
                     setShowSnapshotExplain(false);
@@ -898,6 +916,31 @@ function GuitarSetupFields({ gear, notes }: { gear: GearDoc; notes?: string }) {
   const [showSnapshotExplain, setShowSnapshotExplain] = useState(false);
   const [snapshotSaving, setSnapshotSaving] = useState(false);
   const { addToast } = useToast();
+  // Open modal from under-image button via custom event (no URL param)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const handler = () => setShowSnapshotExplain(true);
+    window.addEventListener('openGearSnapshot', handler as EventListener);
+    return () => window.removeEventListener('openGearSnapshot', handler as EventListener);
+  }, []);
+  // Open modal when URL has openSnapshot=1 (supports in-page button via popstate)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const checkAndOpen = () => {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('openSnapshot') === '1') {
+        setShowSnapshotExplain(true);
+        params.delete('openSnapshot');
+        const url = new URL(window.location.href);
+        url.search = params.toString();
+        window.history.replaceState({}, '', url.toString());
+      }
+    };
+    checkAndOpen();
+    const handler = () => checkAndOpen();
+    window.addEventListener('popstate', handler);
+    return () => window.removeEventListener('popstate', handler);
+  }, []);
 
   function autocompleteDate(val: string): string {
     // Remove non-digits
@@ -1415,46 +1458,29 @@ function GuitarSetupFields({ gear, notes }: { gear: GearDoc; notes?: string }) {
                   if (!gear.id) return;
                   setSnapshotSaving(true);
                   try {
-                    const now = new Date();
-                    const mm = String(now.getMonth() + 1).padStart(2, '0');
-                    const yy = String(now.getFullYear()).slice(-2);
-                    const monthYear = `${mm}/${yy}`;
-                    // Build snapshot object without any undefined fields (Firestore rejects undefined)
-                    const snapshot: { [key: string]: string | number | null } = {
-                      savedAt: now.getTime(),
-                      monthYear,
-                    };
-                    const resolvedStringBrand = stringBrand === 'CUSTOM' ? (customBrand.trim() || null) : stringBrand;
-                    if (resolvedStringBrand) snapshot.stringManufacturer = resolvedStringBrand;
-                    const resolvedPickupB = pickupBBrand === 'CUSTOM' ? (customPickupB.trim() || null) : pickupBBrand;
-                    if (resolvedPickupB) snapshot.pickupBManufacturer = resolvedPickupB;
-                    const resolvedPickupM = pickupMBrand === 'CUSTOM' ? (customPickupM.trim() || null) : pickupMBrand;
-                    if (resolvedPickupM) snapshot.pickupMManufacturer = resolvedPickupM;
-                    const resolvedPickupN = pickupNBrand === 'CUSTOM' ? (customPickupN.trim() || null) : pickupNBrand;
-                    if (resolvedPickupN) snapshot.pickupNManufacturer = resolvedPickupN;
-                    if (gear.numberOfStrings) snapshot.numberOfStrings = gear.numberOfStrings;
-                    if (tuningName) snapshot.tuning = tuningName;
-                    if (stringGauge) snapshot.stringGauge = stringGauge;
-                    if (notesEdit) snapshot.notes = notesEdit;
-                    const trimmedNickname = nickname.trim();
-                    if (trimmedNickname) snapshot.nickname = trimmedNickname;
-                    const db = getDb();
-                    if (db) {
-                      const { doc, getDoc, updateDoc } = await import('firebase/firestore');
-                      const ref = doc(db, 'gear', gear.id);
-                      const existingSnap = await getDoc(ref);
-                      const data = existingSnap.exists() ? existingSnap.data() : {};
-                      const existingSnapshots = Array.isArray(data.snapshots) ? data.snapshots : [];
-                      const baseNotes = (data.notes || notesEdit || '').trim();
-                      const updatedNotes = (baseNotes ? baseNotes + '\n' : '') + `--Snapshot ${monthYear}--`;
-                      await updateDoc(ref, {
-                        snapshots: [...existingSnapshots, snapshot],
-                        notes: updatedNotes,
-                      });
-                      gear.snapshots = [...existingSnapshots, snapshot];
-                      gear.notes = updatedNotes;
+                    const { saveSetupSnapshot } = await import('@/lib/snapshots');
+                    const { snapshot, updatedNotes } = await saveSetupSnapshot(gear.id, {
+                      notes: notesEdit,
+                      nickname: nickname,
+                      stringManufacturer: stringBrand === 'CUSTOM' ? (customBrand.trim() || null) : stringBrand,
+                      pickupBManufacturer: pickupBBrand === 'CUSTOM' ? (customPickupB.trim() || null) : pickupBBrand,
+                      pickupMManufacturer: pickupMBrand === 'CUSTOM' ? (customPickupM.trim() || null) : pickupMBrand,
+                      pickupNManufacturer: pickupNBrand === 'CUSTOM' ? (customPickupN.trim() || null) : pickupNBrand,
+                      numberOfStrings: gear.numberOfStrings,
+                      tuning: tuningName,
+                      stringGauge,
+                    });
+                    gear.snapshots = Array.isArray(gear.snapshots) ? [...gear.snapshots, snapshot] : [snapshot];
+                    gear.notes = updatedNotes;
+                    setNotesEdit(updatedNotes);
+                    if (typeof window !== 'undefined') {
+                      const url = new URL(window.location.href);
+                      url.searchParams.set('snapshot', String(snapshot.savedAt));
+                      window.history.replaceState({}, '', url.toString());
                     }
-                    addToast({ type: 'success', title: 'Snapshot saved', message: `Saved setup snapshot (${monthYear})` });
+                    const mmLoc = String(new Date(snapshot.savedAt).getMonth() + 1).padStart(2, '0');
+                    const yyLoc = String(new Date(snapshot.savedAt).getFullYear()).slice(-2);
+                    addToast({ type: 'success', title: 'Snapshot saved', message: `Saved setup snapshot (${mmLoc}/${yyLoc})` });
                   } catch (e) {
                     addToast({ type: 'error', title: 'Snapshot failed', message: e instanceof Error ? e.message : 'Unknown error' });
                   } finally {
@@ -1544,6 +1570,15 @@ function GenericSetupFields({ gear }: { gear: GearDoc }) {
   // Free text notes for generic rooms
   const [genericNotes, setGenericNotes] = useState<string>(gear.notes || '');
   useEffect(() => { if (!snapshotMode) setGenericNotes(gear.notes || ''); }, [gear.notes, snapshotMode]);
+  const [showSnapshotExplain, setShowSnapshotExplain] = useState(false);
+  const [snapshotSaving, setSnapshotSaving] = useState(false);
+  // Open modal via custom event from under-image button (no URL mutation)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const handler = () => setShowSnapshotExplain(true);
+    window.addEventListener('openGearSnapshot', handler as EventListener);
+    return () => window.removeEventListener('openGearSnapshot', handler as EventListener);
+  }, []);
 
   const initialYear = (gear && 'specs' in gear ? (gear as { specs?: { year?: number } }).specs?.year : undefined);
   const [yearState, setYearState] = useState<number | ''>(initialYear ?? '');
@@ -1569,6 +1604,8 @@ function GenericSetupFields({ gear }: { gear: GearDoc }) {
         zIndex: 2
       }}
     >
+      {/* Open snapshot modal when URL contains openSnapshot=1 (initial and on popstate) */}
+      {(() => null)()}
       {snapshotMode && activeSnapshot && (
         <div style={{ gridColumn: '1 / -1', textAlign: 'center', margin: '0 0 28px 0', position: 'relative' }}>
           <div style={{ fontSize: 48, color: '#b00', fontWeight: 900, letterSpacing: 2 }}>{activeSnapshot.monthYear}</div>
@@ -1638,6 +1675,68 @@ function GenericSetupFields({ gear }: { gear: GearDoc }) {
           className={itemStyles.advancedTextarea}
         />
       </div>
+
+      {!snapshotMode && (
+        <div style={{ position: 'fixed', bottom: 18, right: 18, zIndex: 50, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8 }}>
+          <button
+            type="button"
+            onClick={() => setShowSnapshotExplain(true)}
+            style={{ background: '#2563eb', color: '#fff', border: '1px solid #144c99', padding: '10px 18px', fontSize: 14, borderRadius: 8, cursor: 'pointer', fontWeight: 600, boxShadow: '0 3px 12px rgba(0,0,0,0.35)' }}
+          >Save snapshot to archive</button>
+        </div>
+      )}
+      {showSnapshotExplain && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ background: '#222', color: '#fff', padding: '28px 32px', borderRadius: 16, width: 'min(460px,90vw)', display: 'grid', gap: 18, boxShadow: '0 4px 28px rgba(0,0,0,0.45)' }}>
+            <h4 style={{ margin: 0, fontSize: 20 }}>Archive Setup Snapshot</h4>
+            <p style={{ margin: 0, fontSize: 14, lineHeight: 1.5 }}>
+              Save current nickname and notes into the archive. Values remain for ongoing editing.
+            </p>
+            <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
+              <button
+                type="button"
+                onClick={() => setShowSnapshotExplain(false)}
+                style={{ background: '#444', color: '#fff', border: '1px solid #555', padding: '8px 14px', borderRadius: 8, cursor: 'pointer', fontSize: 14 }}
+              >Cancel</button>
+              <button
+                type="button"
+                disabled={snapshotSaving}
+                onClick={async () => {
+                  if (!gear.id) return;
+                  setSnapshotSaving(true);
+                  try {
+                    const { saveSetupSnapshot } = await import('@/lib/snapshots');
+                    const { snapshot, updatedNotes } = await saveSetupSnapshot(gear.id, {
+                      notes: genericNotes,
+                      nickname,
+                    });
+                    gear.snapshots = Array.isArray(gear.snapshots) ? [...gear.snapshots, snapshot] : [snapshot];
+                    gear.notes = updatedNotes;
+                    setGenericNotes(updatedNotes);
+                    if (typeof window !== 'undefined') {
+                      const url = new URL(window.location.href);
+                      url.searchParams.set('snapshot', String(snapshot.savedAt));
+                      window.history.replaceState({}, '', url.toString());
+                    }
+                    const mm = String(new Date(snapshot.savedAt).getMonth() + 1).padStart(2, '0');
+                    const yy = String(new Date(snapshot.savedAt).getFullYear()).slice(-2);
+                    const { addToast } = await import('@/contexts/ToastContext').then(m => ({ addToast: m.useToast().addToast }));
+                    // Fallback toast access pattern; if unavailable, ignore
+                    try { addToast({ type: 'success', title: 'Snapshot saved', message: `Saved setup snapshot (${mm}/${yy})` }); } catch {}
+                  } catch (e) {
+                    const msg = e instanceof Error ? e.message : 'Unknown error';
+                    try { const { addToast } = await import('@/contexts/ToastContext').then(m => ({ addToast: m.useToast().addToast })); addToast({ type: 'error', title: 'Snapshot failed', message: msg }); } catch {}
+                  } finally {
+                    setSnapshotSaving(false);
+                    setShowSnapshotExplain(false);
+                  }
+                }}
+                style={{ background: '#2563eb', color: '#fff', border: '1px solid #144c99', padding: '8px 16px', borderRadius: 8, cursor: 'pointer', fontSize: 14, fontWeight: 600 }}
+              >{snapshotSaving ? 'Saving…' : 'Save Snapshot'}</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
