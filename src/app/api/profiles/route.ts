@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { getDb } from '@/contexts/AuthContext';
-import { collection, getDocs, query, where } from 'firebase/firestore';
+import { getDb } from '@/lib/firebase';
+import { collection, doc, getDoc, getDocs, query, where } from 'firebase/firestore';
 
 // GET /api/profiles?ids=uid1,uid2,uid3
 // Returns a map of ownerId -> { name, location }
@@ -17,10 +17,20 @@ export async function GET(request: Request) {
     if (!db) return NextResponse.json({ error: 'DB unavailable' }, { status: 500 });
 
     const profCol = collection(db, 'profiles');
-    // Firestore does not support where in array directly; chunk by equality queries
-    // Fallback: fetch all requested via multiple queries (small N expected)
     const result: Record<string, { name?: string; location?: string }> = {};
     for (const id of ids) {
+      // First, try the canonical users collection by UID
+      const userRef = doc(db, 'users', id);
+      const userSnap = await getDoc(userRef);
+      if (userSnap.exists()) {
+        const data = userSnap.data() as any;
+        result[id] = {
+          name: data.displayName || undefined,
+          location: data.location || undefined,
+        };
+        continue;
+      }
+      // Fallback: legacy profiles collection queried by ownerId
       const q = query(profCol, where('ownerId', '==', id));
       const snaps = await getDocs(q);
       const first = snaps.docs[0]?.data() as any;

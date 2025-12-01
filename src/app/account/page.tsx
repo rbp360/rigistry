@@ -1,6 +1,7 @@
 'use client';
 
 import AuthButtons from '@/components/AuthButtons';
+import LocationAutocomplete from '@/components/LocationAutocomplete';
 import { useAuth } from '@/contexts/AuthContext';
 import { getDb } from '@/lib/firebase';
 import { doc, onSnapshot, setDoc, serverTimestamp } from 'firebase/firestore';
@@ -142,12 +143,10 @@ export default function AccountPage() {
 
             <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               <span>Location</span>
-              <input
-                type="text"
+              <LocationAutocomplete
                 value={form.location}
-                onChange={(e) => setForm((f) => ({ ...f, location: e.target.value }))}
+                onChange={(v) => setForm((f) => ({ ...f, location: v }))}
                 placeholder="City, Country"
-                style={{ padding: '8px 10px', border: '1px solid #ddd', borderRadius: 8 }}
               />
             </label>
 

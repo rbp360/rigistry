@@ -6,6 +6,15 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   // Explicitly set the monorepo root to silence workspace root warnings
   outputFileTracingRoot: path.join(__dirname, '..'),
+  async redirects() {
+    return [
+      {
+        source: '/messageboard',
+        destination: '/connect',
+        permanent: true,
+      },
+    ];
+  },
   images: {
     remotePatterns: [
       {
