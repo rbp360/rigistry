@@ -134,6 +134,7 @@ export default function AuthButtons() {
         >
           <Link href="/account" role="menuitem" style={menuItemStyle}>Account</Link>
           <Link href="/settings" role="menuitem" style={menuItemStyle}>Settings</Link>
+          <Link href="/inbox" role="menuitem" style={menuItemStyle}>Inbox</Link>
           <button
             role="menuitem"
             onClick={() => {

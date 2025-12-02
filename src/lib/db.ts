@@ -4,6 +4,7 @@ import {
   doc,
   getDoc,
   getDocs,
+  deleteDoc,
   query,
   serverTimestamp,
   setDoc,
@@ -175,6 +176,14 @@ export async function listGearByOwner(ownerId: string): Promise<GearDoc[]> {
   return snaps.docs.map((d) => d.data());
 }
 
+export async function listDeletedGearByOwner(ownerId: string): Promise<GearDoc[]> {
+  const db = getDb();
+  if (!db) return [];
+  const q: Query<GearDoc> = query(gearCol(db), where('ownerId', '==', ownerId), where('deleted', '==', true));
+  const snaps = await getDocs(q);
+  return snaps.docs.map((d) => d.data());
+}
+
 export async function createGearItem(partial: Omit<GearDoc, 'id' | 'createdAt' | 'updatedAt'>): Promise<GearDoc | null> {
   const db = getDb();
   if (!db) return null;
@@ -222,6 +231,31 @@ export async function archiveGearItem(id: string): Promise<boolean> {
   // Only update the 'archived' field, merge: true ensures other fields are preserved
   await setDoc(ref, { archived: true }, { merge: true });
   return true;
+}
+
+export async function restoreGearItem(id: string): Promise<boolean> {
+  const db = getDb();
+  if (!db) return false;
+  const ref = doc(gearCol(db), id);
+  try {
+    await updateDoc(ref, { deleted: false, archived: false, updatedAt: serverTimestamp() });
+    return true;
+  } catch (e) {
+    console.error('restoreGearItem failed', e);
+    return false;
+  }
+}
+
+export async function permanentlyDeleteGearItem(id: string): Promise<boolean> {
+  const db = getDb();
+  if (!db) return false;
+  try {
+    await deleteDoc(doc(gearCol(db), id));
+    return true;
+  } catch (e) {
+    console.error('permanentlyDeleteGearItem failed', e);
+    return false;
+  }
 }
 
 export async function loadRigNodes(rigId: string): Promise<RigNodeDoc[]> {

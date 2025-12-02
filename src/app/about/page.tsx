@@ -28,9 +28,11 @@ const scalePhase = [
   'Licensing + attribution automation',
 ];
 
+import rigistryStyles from '../rigistry/Rigistry.module.css';
+
 export default function AboutPage() {
   return (
-    <main style={{ padding: '0 0 64px', maxWidth: 1400, margin: '0 auto' }}>
+    <main className={rigistryStyles.rigistryMain} style={{ padding: '0 0 64px', color: '#fff' }}>
       {/* Hero section */}
       <section
         style={{
@@ -41,8 +43,6 @@ export default function AboutPage() {
           justifyContent: 'center',
           textAlign: 'center',
           gap: 28,
-          background: 'radial-gradient(circle at center, #0d0d0d 0%, #000 70%)',
-          color: '#e5e5e5',
           padding: '90px 32px 110px'
         }}
       >

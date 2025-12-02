@@ -28,6 +28,16 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## Deleted Items Management (Recycle Bin)
+
+- Soft-deleted gear items (marked `deleted: true`) are hidden from rooms but kept in Firestore.
+- Visit `/settings` to manage deleted items:
+	- Select items and click "Restore selected" to bring them back (clears `deleted` and `archived`).
+	- Select items and click "Permanently delete selected" to remove them from Firestore.
+- Implementation:
+	- Client helpers in `src/lib/db.ts`: `listDeletedGearByOwner`, `restoreGearItem`, `permanentlyDeleteGearItem`.
+	- UI in `src/app/settings/DeletedItemsManager.tsx` embedded by `src/app/settings/page.tsx`.
+
 ## Gear Kind Detail Autocomplete
 
 The Add Gear forms (`/gear/add`, `/rigistry/add`) and the gear edit page use an autocomplete for the **Kind detail** field. This lets you quickly select specific instruments (e.g. "electric guitar", "alto saxophone") or studio/live equipment (e.g. "Audio Interface", "Line Array").

@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useMemo, useState } from 'react';
 import styles from './Connect.module.css';
+import rigistryStyles from '../rigistry/Rigistry.module.css';
 import type { GearDoc } from '@/types/schema';
 import { getDb } from '@/lib/firebase';
 import { collection, getDocs, query, where, limit as fsLimit, type QueryConstraint, addDoc, serverTimestamp } from 'firebase/firestore';
@@ -223,7 +224,7 @@ export default function ConnectPage() {
   }
 
   return (
-    <main className={styles.backdrop}>
+    <main className={rigistryStyles.rigistryMain} style={{ color: '#fff' }}>
       <div className={styles.content}>
         <h1 className={styles.title}>Connect</h1>
         <p className={styles.subtitle}>{explanation}</p>

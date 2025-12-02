@@ -42,14 +42,6 @@ export default function RootLayout({
               {/* CTA moved to Rigistry page */}
             </nav>
             <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-              <Link href="/inbox" style={{
-                padding: '6px 12px',
-                borderRadius: 6,
-                background: '#0f172a',
-                border: '1px solid #334155',
-                color: '#e5e7eb',
-                fontWeight: 600
-              }}>Inbox</Link>
               <AuthButtons />
             </div>
           </header>
