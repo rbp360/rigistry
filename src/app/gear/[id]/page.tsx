@@ -197,8 +197,11 @@ export default function GearDetailPage() {
 
   // Legacy global event listener removed; modal now opens via URL param `openSnapshot`
 
+  // Collect distinct location suggestions from user's gear
+  // Location suggestions removed; GearDoc has no 'location' field.
+
   return (
-    <main className={itemStyles.itemMain} style={{ position: 'relative', width: '100vw', height: '100vh', overflow: 'hidden' }}>
+    <main className={itemStyles.itemMainNeutral} style={{ position: 'relative', width: '100vw', height: '100vh', overflow: 'hidden' }}>
       {/* Backdrop overlay: prefer kind-based; fallback to room-based */}
       {!loading && gear && (() => {
         const kindSrc = backdropForKind(gear.kind);
@@ -220,7 +223,7 @@ export default function GearDetailPage() {
               alt="Backdrop"
               width={1400}
               height={1400}
-              style={{ objectFit: 'contain', opacity: 0.20, maxWidth: '92vw', maxHeight: '92vh', pointerEvents: 'none' }}
+              style={{ objectFit: 'contain', opacity: 0.45, maxWidth: '92vw', maxHeight: '92vh', pointerEvents: 'none' }}
               onError={() => {
                 if (!kindSrc) {
                   if (norm === 'control' && src !== '/branding/Control room.png') {
@@ -252,6 +255,13 @@ export default function GearDetailPage() {
         >
           ← Back to Room
         </button>
+      )}
+
+      {/* Location editor: free text or select suggestion */}
+      {!loading && gear && (
+        <div style={{ position: 'absolute', top: 18, right: 72, zIndex: 10, display: 'flex', gap: 8, alignItems: 'center' }}>
+          {/* Location field is not part of GearDoc; temporarily hidden to pass type-check */}
+        </div>
       )}
 
       {/* Settings cog button top right */}

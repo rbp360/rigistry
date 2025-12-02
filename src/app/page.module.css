@@ -21,14 +21,13 @@
   display: flex;
   min-height: 100vh;
   width: 100%;
-  max-width: 800px;
   flex-direction: column;
-  align-items: flex-start;
-  justify-content: space-between;
-  background-color: var(--foreground);
-  padding: 120px 60px;
+  align-items: center;
+  justify-content: center;
   position: relative;
-  background-image: url('/branding/logo2.png');
+  /* Full-screen responsive logo background */
+  background-color: #000;
+  background-image: url('/branding/Logo 1 landscape.jpg');
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
@@ -124,6 +123,13 @@ a.secondary {
     font-size: 32px;
     line-height: 40px;
     letter-spacing: -1.92px;
+  }
+}
+
+/* Mobile breakpoint: use portrait logo up to tablets */
+@media (max-width: 767px) {
+  .main {
+    background-image: url('/branding/logo1.png');
   }
 }
 

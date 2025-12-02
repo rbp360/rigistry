@@ -74,7 +74,45 @@
 .itemMain {
   padding: 2rem;
   min-height: 100vh;
-  background: url('/branding/logo1.png') center/contain no-repeat fixed, #000;
+  /* Full screen backdrop: desktop/laptop uses landscape, mobile uses portrait */
+  background-color: #000;
+  background-image: url('/branding/Logo 1 landscape.jpg');
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  background-size: cover;
+  text-align: center;
+  position: relative; /* allow overlay */
+}
+
+/* Mobile: portrait logo full screen */
+@media (max-width: 767px) {
+  .itemMain {
+    background-image: url('/branding/logo1.png');
+    background-size: cover;
+  }
+}
+
+/* Overlay to normalize shading like Rigistry main */
+.itemMain::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.55);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.itemMain > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Neutral variant for gear detail pages (no logo background) */
+.itemMainNeutral {
+  padding: 2rem;
+  min-height: 100vh;
+  background: #000;
   text-align: center;
 }
 

@@ -25,11 +25,23 @@
 .rigistryMain {
   padding: 2rem;
   min-height: 100vh;
-  /* Full screen backdrop */
-  /* Updated backdrop to use branding/logo1.png */
-  background: url('/branding/logo1.png') center/contain no-repeat fixed, #000;
+  /* Full screen backdrop: desktop/laptop uses landscape, mobile uses portrait */
+  background-color: #000;
+  background-image: url('/branding/Logo 1 landscape.jpg');
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  background-size: cover;
   /* Overlay for readability */
   position: relative;
+}
+
+/* Mobile: portrait logo full screen */
+@media (max-width: 767px) {
+  .rigistryMain {
+    background-image: url('/branding/logo1.png');
+    background-size: cover;
+  }
 }
 
 .rigistryMain::before {

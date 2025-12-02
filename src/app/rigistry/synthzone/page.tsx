@@ -2,10 +2,11 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import RoomGearList from '../RoomGearList';
+import styles from '../Rigistry.module.css';
 
 export default function SynthzoneRoom() {
   return (
-    <main style={{ padding: '2rem', textAlign: 'center', minHeight: '100vh', background: "url('/branding/logo1.png') center/contain no-repeat fixed, #000" }}>
+    <main className={styles.rigistryMain} style={{ textAlign: 'center' }}>
       <h1 style={{ color: '#22c55e' }}>Synthzone</h1>
       <Image src="/branding/Synthzone.png" alt="Synthzone" width={220} height={220} />
       <p>Add synths, keys, and electronic gear here.</p>
