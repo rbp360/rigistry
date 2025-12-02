@@ -15,13 +15,18 @@ export default function ConnectPage() {
   const [model, setModel] = useState('');
   const [kindDetail, setKindDetail] = useState('');
   const [color, setColor] = useState('');
-  const [yearStart, setYearStart] = useState('');
-  const [yearEnd, setYearEnd] = useState('');
+  // Single year range input supports formats:
+  // 1970-1980 (inclusive range), 1970+ or >=1970 (min only), <=1980 or -1980 (max only), single year (exact)
+  const [yearRange, setYearRange] = useState('');
   const [scope, setScope] = useState<'worldwide' | 'local'>('worldwide');
+  // New scope: national vs worldwide
+  const [scope2, setScope2] = useState<'worldwide' | 'national' | 'nearby'>('worldwide');
+  const [radiusKm, setRadiusKm] = useState('100');
   const [location, setLocation] = useState('');
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<GearDoc[]>([]);
-  const [profiles, setProfiles] = useState<Record<string, { name?: string; location?: string }>>({});
+  const [profiles, setProfiles] = useState<Record<string, { name?: string; location?: string; countryCode?: string; latitude?: number; longitude?: number }>>({});
+  const [distanceByOwner, setDistanceByOwner] = useState<Record<string, number>>({});
   const [composeOpen, setComposeOpen] = useState(false);
   const [composeText, setComposeText] = useState('');
   const [composeSending, setComposeSending] = useState(false);
@@ -30,6 +35,37 @@ export default function ConnectPage() {
   const explanation = useMemo(() => (
     "Search for other users who own the same gear. Use brand, model, options, and year range to narrow results (e.g., 'Fender Stratocaster 1970–1980' or 'Fender Stratocaster Floyd Rose'). Choose worldwide for broad results or local to focus near a location (coming soon)."
   ), []);
+
+  function parseYearRange(str: string): { min?: number; max?: number } {
+    const s = str.trim();
+    if (!s) return {};
+    // 1970-1980
+    const dashMatch = /^([0-9]{4})\s*[-–]\s*([0-9]{4})$/.exec(s);
+    if (dashMatch) {
+      const a = parseInt(dashMatch[1], 10);
+      const b = parseInt(dashMatch[2], 10);
+      if (a && b) return { min: Math.min(a, b), max: Math.max(a, b) };
+    }
+    // 1970+ or >=1970
+    const minMatch = /^(?:>=)?([0-9]{4})\+?$/.exec(s);
+    if (minMatch) {
+      const y = parseInt(minMatch[1], 10);
+      if (y) return { min: y };
+    }
+    // <=1980 or -1980
+    const maxMatch = /^(?:<=|-)?([0-9]{4})$/.exec(s);
+    if (maxMatch) {
+      const y = parseInt(maxMatch[1], 10);
+      if (y) return { max: y };
+    }
+    // Single year exact
+    const singleMatch = /^([0-9]{4})$/.exec(s);
+    if (singleMatch) {
+      const y = parseInt(singleMatch[1], 10);
+      return { min: y, max: y };
+    }
+    return {};
+  }
 
   async function runSearch() {
     setLoading(true);
@@ -54,19 +90,66 @@ export default function ConnectPage() {
         list = list.filter(g => (g.color || '').toLowerCase().includes(c));
       }
       // Year range using specs.year if present
-      const ys = yearStart ? parseInt(yearStart, 10) : undefined;
-      const ye = yearEnd ? parseInt(yearEnd, 10) : undefined;
-      if (ys || ye) {
+      const { min: ys, max: ye } = parseYearRange(yearRange);
+      if (typeof ys === 'number' || typeof ye === 'number') {
         list = list.filter(g => {
           const year = (g.specs && typeof g.specs.year === 'number') ? (g.specs.year as number) : undefined;
-          if (!year) return false; // if filtering by year, require a year
-          return (ys ? year >= ys : true) && (ye ? year <= ye : true);
+          if (!year) return false; // require a year if filtering
+          if (typeof ys === 'number' && year < ys) return false;
+          if (typeof ye === 'number' && year > ye) return false;
+          return true;
         });
       }
-      // Local scope placeholder: would require joining a user profile with location
-      if (scope === 'local' && location.trim()) {
-        // TODO: join with user profiles by ownerId to match approximate location
-        // For now, keep worldwide behavior; surface note in UI
+      // Geographical filtering
+      if (user && (scope2 === 'national' || scope2 === 'nearby')) {
+        try {
+          const resMe = await fetch(`/api/profiles?ids=${encodeURIComponent(user.uid)}`);
+          const meData = await resMe.json();
+          const my = (meData.profiles && meData.profiles[user.uid]) || {};
+          const ownerIds = Array.from(new Set(list.map(g => g.ownerId).filter(Boolean))) as string[];
+          let profs = profiles;
+          if (!ownerIds.every(id => profs[id])) {
+            try {
+              const res = await fetch(`/api/profiles?ids=${encodeURIComponent(ownerIds.join(','))}`);
+              const data = await res.json();
+              profs = data.profiles || {};
+              setProfiles(profs);
+            } catch {}
+          }
+          // National filter
+          if (scope2 === 'national' && my.countryCode) {
+            list = list.filter(g => {
+              const p = g.ownerId ? profs[g.ownerId] : undefined;
+              return (p && p.countryCode) ? (p.countryCode === my.countryCode) : false;
+            });
+          }
+          // Nearby filter (distance within radius)
+          if (scope2 === 'nearby' && typeof my.latitude === 'number' && typeof my.longitude === 'number') {
+            const rKm = parseFloat(radiusKm) || 0;
+            const dMap: Record<string, number> = {};
+            function haversine(lat1: number, lon1: number, lat2: number, lon2: number) {
+              const toRad = (deg: number) => deg * Math.PI / 180;
+              const R = 6371; // km
+              const dLat = toRad(lat2 - lat1);
+              const dLon = toRad(lon2 - lon1);
+              const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLon/2)**2;
+              const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+              return R * c;
+            }
+            list = list.filter(g => {
+              const p = g.ownerId ? profs[g.ownerId] : undefined;
+              if (!p || typeof p.latitude !== 'number' || typeof p.longitude !== 'number') return false;
+              const dist = haversine(my.latitude, my.longitude, p.latitude, p.longitude);
+              dMap[g.ownerId as string] = dist;
+              return dist <= rKm;
+            });
+            setDistanceByOwner(dMap);
+          } else if (scope2 !== 'nearby') {
+            setDistanceByOwner({});
+          }
+        } catch {
+          if (scope2 !== 'nearby') setDistanceByOwner({});
+        }
       }
       setResults(list);
       // Fetch profiles for owner names/locations
@@ -158,12 +241,25 @@ export default function ConnectPage() {
           <input placeholder="Model (e.g., Stratocaster)" value={model} onChange={e => setModel(e.target.value)} style={inputStyle} />
           <KindDetailAutocomplete value={kindDetail} onChange={setKindDetail} placeholder="Kind detail / type (e.g., guitar)" />
           <input placeholder="Color / option (e.g., sunburst, Floyd Rose)" value={color} onChange={e => setColor(e.target.value)} style={inputStyle} />
-          <input placeholder="Year start" value={yearStart} onChange={e => setYearStart(e.target.value)} style={inputStyle} />
-          <input placeholder="Year end" value={yearEnd} onChange={e => setYearEnd(e.target.value)} style={inputStyle} />
-          <select value={scope} onChange={e => setScope(e.target.value as 'worldwide' | 'local')} style={inputStyle}>
+          <input
+            placeholder="Year / range (e.g. 1970-1980, 1970+, <=1980)"
+            value={yearRange}
+            onChange={e => setYearRange(e.target.value)}
+            style={inputStyle}
+          />
+          <select value={scope2} onChange={e => setScope2(e.target.value as 'worldwide' | 'national' | 'nearby')} style={inputStyle}>
             <option value="worldwide">Worldwide</option>
-            <option value="local">Local (by location)</option>
+            <option value="national">National (same country)</option>
+            <option value="nearby">Nearby (radius km)</option>
           </select>
+          {scope2 === 'nearby' && (
+            <input
+              placeholder="Radius km"
+              value={radiusKm}
+              onChange={e => setRadiusKm(e.target.value)}
+              style={inputStyle}
+            />
+          )}
           <LocationAutocomplete value={location} onChange={setLocation} placeholder="Location (city, region)" />
           <button type="button" onClick={runSearch} disabled={loading} style={buttonStyle}>
             {loading ? 'Searching…' : 'Search'}
@@ -177,6 +273,7 @@ export default function ConnectPage() {
             const src = g.imageUrl || brandLogo || '/branding/logo1.png';
             const p = (g.ownerId && profiles[g.ownerId]) || {};
             const ownerDisplay = g.ownerId ? `${p.name || 'Unknown user'} — ${p.location || 'Unknown location'}` : 'Unknown user';
+            const dist = scope2 === 'nearby' && g.ownerId ? distanceByOwner[g.ownerId] : undefined;
             return (
               <div key={g.id || `${g.ownerId}-${idx}`}
                    style={{ border: '1px solid #333', borderRadius: 8, padding: 12, background: '#1f1f1f' }}>
@@ -185,6 +282,9 @@ export default function ConnectPage() {
                 <div style={{ marginTop: 8 }}>
                   <strong>{[g.brand, g.model].filter(Boolean).join(' ') || 'Gear'}</strong>
                   <div style={{ fontSize: 12, opacity: 0.7 }}>{ownerDisplay}</div>
+                  {p.countryCode && (
+                    <div style={{ fontSize: 11, opacity: 0.55 }}>Country: {p.countryCode.toUpperCase()} {typeof dist === 'number' ? `• ${dist.toFixed(1)} km` : ''}</div>
+                  )}
                   <div style={{ fontSize: 12, opacity: 0.6 }}>{g.kindDetail || g.kind}</div>
                 </div>
                 <button type="button" onClick={() => openCompose(g)} style={{
@@ -204,8 +304,8 @@ export default function ConnectPage() {
             <div style={{ opacity: 0.7, gridColumn: '1/-1' }}>No results yet. Try broadening your search or removing filters.</div>
           )}
         </div>
-        {scope === 'local' && !location.trim() && (
-          <div style={{ marginTop: 10, fontSize: 12, opacity: 0.6 }}>Tip: enter a location to enable local scoping (profile join coming soon).</div>
+        {scope2 === 'national' && (
+          <div style={{ marginTop: 10, fontSize: 12, opacity: 0.6 }}>Showing users in the same country as your profile. Update your country by selecting a location in Account.</div>
         )}
       </div>
       <ComposeModal

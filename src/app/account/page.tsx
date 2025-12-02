@@ -16,6 +16,9 @@ type ProfileForm = {
   location: string;
   bio: string;
   primaryInstrument: InstrumentKind | '';
+  countryCode?: string;
+  latitude?: number;
+  longitude?: number;
 };
 
 const instrumentKinds: InstrumentKind[] = [
@@ -42,6 +45,9 @@ interface UserProfileDoc {
   location?: string | null;
   bio?: string | null;
   primaryInstrument?: InstrumentKind | null;
+  countryCode?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
 }
 
 export default function AccountPage() {
@@ -62,7 +68,10 @@ export default function AccountPage() {
         displayName: (d?.displayName ?? user.displayName ?? '') as string,
         location: (d?.location ?? '') as string,
         bio: (d?.bio ?? '') as string,
-  primaryInstrument: (d?.primaryInstrument ?? '') as InstrumentKind | '',
+        primaryInstrument: (d?.primaryInstrument ?? '') as InstrumentKind | '',
+        countryCode: (d?.countryCode ?? '') as string,
+        latitude: typeof d?.latitude === 'number' ? d.latitude : undefined,
+        longitude: typeof d?.longitude === 'number' ? d.longitude : undefined,
       });
     });
     return () => unsub();
@@ -88,6 +97,9 @@ export default function AccountPage() {
           uid: user.uid,
           displayName: form.displayName || null,
           location: form.location || null,
+          countryCode: form.countryCode || null,
+          latitude: typeof form.latitude === 'number' ? form.latitude : null,
+          longitude: typeof form.longitude === 'number' ? form.longitude : null,
           bio: form.bio || null,
           primaryInstrument: form.primaryInstrument || null,
           updatedAt: serverTimestamp(),
@@ -146,8 +158,36 @@ export default function AccountPage() {
               <LocationAutocomplete
                 value={form.location}
                 onChange={(v) => setForm((f) => ({ ...f, location: v }))}
+                onSelect={(p) => {
+                  // If the prediction came from OSM, place_id is like "osm:<type>:<id>"
+                  const parts = p.place_id.split(':');
+                  if (parts[0] === 'osm' && parts.length >= 3) {
+                    const osmType = parts[1];
+                    const osmId = parts[2];
+                    const osmUrl = new URL('https://nominatim.openstreetmap.org/lookup');
+                    osmUrl.searchParams.set('format', 'jsonv2');
+                    osmUrl.searchParams.set('osm_ids', `${osmType}${osmId}`);
+                    fetch(osmUrl.toString(), {
+                      headers: { 'User-Agent': 'RigistryApp/1.0 (account-location)' }
+                    })
+                      .then((r) => r.json())
+                      .then((arr) => {
+                        const d = Array.isArray(arr) ? arr[0] : undefined;
+                        const cc = d?.address?.country_code as string | undefined;
+                        const lat = d?.lat ? parseFloat(d.lat) : undefined;
+                        const lon = d?.lon ? parseFloat(d.lon) : undefined;
+                        setForm((f) => ({ ...f, countryCode: cc || '', latitude: lat, longitude: lon }));
+                      })
+                      .catch(() => {/* ignore */});
+                  }
+                }}
                 placeholder="City, Country"
               />
+              {form.countryCode && (
+                <small style={{ marginTop: 4, opacity: 0.7 }}>
+                  Country: {form.countryCode.toUpperCase()} {typeof form.latitude === 'number' && typeof form.longitude === 'number' ? `(${form.latitude.toFixed(3)}, ${form.longitude.toFixed(3)})` : ''}
+                </small>
+              )}
             </label>
 
             <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>

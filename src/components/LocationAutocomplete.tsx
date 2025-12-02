@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from 'react';
 
-interface Prediction {
+export interface Prediction {
   description: string;
   place_id: string;
 }
@@ -9,11 +9,13 @@ interface Prediction {
 export default function LocationAutocomplete({
   value,
   onChange,
+  onSelect,
   placeholder,
   limit = 6,
 }: {
   value: string;
   onChange: (v: string) => void;
+  onSelect?: (p: Prediction) => void;
   placeholder?: string;
   limit?: number;
 }) {
@@ -63,9 +65,13 @@ export default function LocationAutocomplete({
           const txt = await resp.text();
           throw new Error(txt || `HTTP ${resp.status}`);
         }
-        const data = await resp.json() as { predictions: Prediction[] };
-        setItems(data.predictions || []);
-        setOpen((data.predictions || []).length > 0);
+        const data = await resp.json() as { predictions?: Prediction[], error?: string };
+        const preds = data.predictions || [];
+        setItems(preds);
+        setOpen(preds.length > 0);
+        if (preds.length === 0 && data.error) {
+          setError(data.error);
+        }
         setHighlight(-1);
       } catch (e) {
         if (e instanceof DOMException && e.name === 'AbortError') return;
@@ -87,6 +93,7 @@ export default function LocationAutocomplete({
     onChange(p.description);
     setQuery(p.description);
     setOpen(false);
+    onSelect?.(p);
   }
 
   function onKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {

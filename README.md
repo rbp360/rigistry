@@ -1,3 +1,11 @@
+## Location Autocomplete (OSM)
+
+- Uses OpenStreetMap Nominatim for place suggestions.
+- No API key required for light usage. Respect rate limits and usage policy.
+- Endpoint: `/api/places-autocomplete?q=<query>&limit=6`.
+
+Notes
+- For higher traffic or SLA needs, consider a hosted geocoding provider (e.g., LocationIQ, Geoapify) or self-hosting Nominatim/Pelias. We can make the provider configurable if needed.
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started

@@ -17,7 +17,7 @@ export async function GET(request: Request) {
     if (!db) return NextResponse.json({ error: 'DB unavailable' }, { status: 500 });
 
     const profCol = collection(db, 'profiles');
-    const result: Record<string, { name?: string; location?: string }> = {};
+    const result: Record<string, { name?: string; location?: string; countryCode?: string; latitude?: number; longitude?: number }> = {};
     for (const id of ids) {
       // First, try the canonical users collection by UID
       const userRef = doc(db, 'users', id);
@@ -27,6 +27,9 @@ export async function GET(request: Request) {
         result[id] = {
           name: data.displayName || undefined,
           location: data.location || undefined,
+          countryCode: data.countryCode || undefined,
+          latitude: typeof data.latitude === 'number' ? data.latitude : undefined,
+          longitude: typeof data.longitude === 'number' ? data.longitude : undefined,
         };
         continue;
       }
@@ -35,7 +38,13 @@ export async function GET(request: Request) {
       const snaps = await getDocs(q);
       const first = snaps.docs[0]?.data() as any;
       if (first) {
-        result[id] = { name: first.name || first.displayName || undefined, location: first.location || undefined };
+        result[id] = {
+          name: first.name || first.displayName || undefined,
+          location: first.location || undefined,
+          countryCode: first.countryCode || undefined,
+          latitude: typeof first.latitude === 'number' ? first.latitude : undefined,
+          longitude: typeof first.longitude === 'number' ? first.longitude : undefined,
+        };
       } else {
         result[id] = {};
       }
