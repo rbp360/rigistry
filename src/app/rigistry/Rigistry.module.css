@@ -28,7 +28,8 @@
   /* Full screen backdrop: desktop/laptop uses landscape, mobile uses portrait */
   background-color: #000;
   background-image: url('/branding/Logo 1 landscape.jpg');
-  background-position: center;
+  /* Shift backdrop upward by 40px for better composition */
+  background-position: center calc(50% - 40px);
   background-repeat: no-repeat;
   background-attachment: fixed;
   background-size: cover;

@@ -1,13 +1,12 @@
 export const dynamic = 'force-static';
 
 const uspBullets = [
-  'Catalogue instruments with serials & photos (insurance + carnet ready)',
+  'Catalogue your entire gear collection with serials & photos (insurance + carnet ready)',
   'Showcase complete rigs visually and narratively',
   'Deep dive: exact gear settings, strings, pickups, tunings, maintenance dates',
-  'Connect owners of similar or rare instruments; ask, trade, collaborate',
-  'Search a normalized gear + user preset knowledge base',
-  'Attach digital model preset files via external storage links',
-];
+  'Find owners of similar or rare instruments; ask, trade, collaborate',
+  'Print, capture and archive your gear and settings as you grow',
+  ];
 
 const mvpPhase = [
   'Gear catalogue (images + metadata)',
@@ -29,6 +28,7 @@ const scalePhase = [
 ];
 
 import rigistryStyles from '../rigistry/Rigistry.module.css';
+import Image from 'next/image';
 
 export default function AboutPage() {
   return (
@@ -46,9 +46,9 @@ export default function AboutPage() {
           padding: '90px 32px 110px'
         }}
       >
-        <h1 style={{ fontFamily: 'var(--font-fibre, Fibre Vintage, serif)', fontSize: 'clamp(3rem,8vw,5rem)', margin: 0, lineHeight: 1 }}>
-          Rigistry
-        </h1>
+        <div aria-label="Rigistry logo" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <Image src="/branding/Rigistry only.png" alt="Rigistry" width={600} height={180} priority style={{ height: 'auto', width: 'min(45.6vw, 410px)' }} />
+        </div>
         <h2
           style={{
             fontFamily: 'var(--font-tungstern, Tungstern Semibold, sans-serif)',
