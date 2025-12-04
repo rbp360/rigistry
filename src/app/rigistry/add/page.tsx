@@ -206,13 +206,12 @@ function InnerAddPage() {
             <div style={{ display: 'flex', gap: 8 }}>
               <button
                 type="button"
-                disabled={fetchingImage || !form.brand}
+                disabled={fetchingImage}
                 onClick={async () => {
-                  if (!form.brand) return;
                   setFetchingImage(true);
                   let usedFallback = false;
                   const nextPickIndex = 0;
-                  if (form.model) {
+                  if (form.brand && form.model) {
                     const result = await fetchStockImageForBrandModel(form.brand, form.model, form.color, nextPickIndex);
                     if (result.url) {
                       const src: CatalogSourceMeta = {
@@ -228,14 +227,42 @@ function InnerAddPage() {
                   } else {
                     usedFallback = true;
                   }
-                  if (usedFallback && form.brand) {
-                    const logoUrl = `/api/brand-logo?brand=${encodeURIComponent(form.brand!)}`;
-                    const src: CatalogSourceMeta = {
-                      source: 'guitar-list',
-                      attribution: 'Logo from guitar-list.com',
-                      licenseNote: 'Logo used with permission via guitar-list.com; display-only.',
-                    };
-                    setForm(f => ({ ...f, imageUrl: logoUrl, catalogSource: src }));
+                  if (usedFallback) {
+                    if (form.brand) {
+                      // Try manufacturer logo when brand present
+                      const logoUrl = `/api/brand-logo?brand=${encodeURIComponent(form.brand!)}`;
+                      const src: CatalogSourceMeta = {
+                        source: 'guitar-list',
+                        attribution: 'Logo from guitar-list.com',
+                        licenseNote: 'Logo used with permission via guitar-list.com; display-only.',
+                      };
+                      setForm(f => ({ ...f, imageUrl: logoUrl, catalogSource: src }));
+                    } else {
+                      // No brand: use kind default mapping (detail override for trumpet → brass)
+                      try {
+                        const res = await fetch('/brand-defaults-by-kind.json', { cache: 'no-store' });
+                        if (res.ok) {
+                          const map = await res.json() as Record<string, string>;
+                          const kindKey = String(form.kind || '').trim().toLowerCase();
+                          const detailKey = String(form.kindDetail || '').trim().toLowerCase();
+                          const detailDefault = detailKey.includes('trumpet') ? map['brass'] : undefined;
+                          const kindDefault = detailDefault || map[kindKey] || '/branding/Studio gear brand default.png';
+                          setForm(f => ({ ...f, imageUrl: kindDefault, catalogSource: { source: 'logo-dev', attribution: 'Kind default placeholder', licenseNote: 'Internal placeholder asset.' } }));
+                        }
+                      } catch {
+                        // Fallback to room or studio default if fetch fails
+                        const k = (form.kind || '').toLowerCase();
+                        let fb = '/branding/Studio gear brand default.png';
+                        if (k.includes('bass')) fb = '/branding/Bass gear brand default.png';
+                        else if (k.includes('drum')) fb = '/branding/Drum gear brand default.png';
+                        else if (k.includes('keyboard') || k.includes('synth') || k.includes('piano')) fb = '/branding/Keyboard gear brand default.png';
+                        else if (k.includes('live') || k.includes('stage') || k.includes('dj')) fb = '/branding/Live gear brand default.png';
+                        else if (k.includes('orchestra') || k.includes('orchestral')) fb = '/branding/Orchestra brand default.png';
+                        else if (k.includes('control') || k.includes('studio')) fb = '/branding/Studio gear brand default.png';
+                        else if (k.includes('guitar')) fb = '/branding/Bass gear brand default.png';
+                        setForm(f => ({ ...f, imageUrl: fb, catalogSource: { source: 'logo-dev', attribution: 'Local default placeholder', licenseNote: 'Internal placeholder asset.' } }));
+                      }
+                    }
                   }
                   setStockFetched(true);
                   setFetchingImage(false);
@@ -244,7 +271,7 @@ function InnerAddPage() {
               >
                 {fetchingImage ? 'Fetching image…' : 'Fetch Stock Image'}
               </button>
-              <small style={{ alignSelf: 'center', opacity: 0.6 }}>Uses Reverb (if model provided); otherwise falls back to guitar-list brand logo.</small>
+              <small style={{ alignSelf: 'center', opacity: 0.6 }}>Uses Reverb when brand+model provided; otherwise uses kind default (or manufacturer logo if brand provided).</small>
             </div>
           )}
           {stockFetched && (

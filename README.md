@@ -65,6 +65,33 @@ Images with `catalogSource.source === 'reverb'` display a small overlay: *"Stock
 
 ### Future Improvements (TODO)
 * Rate-limiting & caching of stock image responses.
+
+## Image Fallback Logic
+
+- Priority order (lists & detail views):
+	- `imageUrl` (explicit upload or chosen stock image)
+	- `detailDefault` (kind-detail override: e.g., trumpet → brass)
+	- `kindDefault` (from `/public/brand-defaults-by-kind.json`)
+	- `brandLogo` (from `GET /api/brand-logo?brand=...`)
+	- `roomDefault` (room-specific backdrop)
+
+- Kind defaults JSON:
+	- Served at `/brand-defaults-by-kind.json` (no-store cache policy).
+	- Keys are case-insensitive; use lowercase when matching.
+	- Brass and Woodwind map to `/branding/brass brand default.png`.
+
+- Add Gear → Fetch Stock Image button:
+	- If brand + model provided: tries Reverb; sets `catalogSource=reverb`.
+	- If Reverb fails or brand/model missing:
+		- When brand present: tries manufacturer logo via `/api/brand-logo`.
+		- When no brand: loads kind default from JSON, applying detail override.
+
+- OnError behavior (image tag):
+	- After any failure (including brand logo 404), prefer detail/kind default first, then room default.
+
+- Notes:
+	- Detail override currently recognizes `trumpet` and maps to brass.
+	- Extend overrides by expanding logic in `RoomGearList.tsx` and the Add page.
 * Smarter listing selection (prefer exact model match vs generic bundles).
 * Explicit logo.dev response validation & error handling.
 * Batch backfill script for existing gear missing images.

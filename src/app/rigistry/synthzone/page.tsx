@@ -2,31 +2,20 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import RoomGearList from '../RoomGearList';
-import styles from '../Rigistry.module.css';
+// styles removed; using itemStyles for room layout
+import itemStyles from '../../item-pages/ItemPageCommon.module.css';
 
 export default function SynthzoneRoom() {
   return (
-    <main className={styles.rigistryMain} style={{ textAlign: 'center' }}>
-      <h1 style={{ color: '#22c55e' }}>Synthzone</h1>
-      <Image src="/branding/Synthzone.png" alt="Synthzone" width={220} height={220} />
-      <p>Add synths, keys, and electronic gear here.</p>
-      <div style={{ margin: '12px 0 20px' }}>
-        <Link
-          href="/rigistry/add?room=synthzone&kind=keyboard-synth-sampler"
-          style={{
-            display: 'inline-block',
-            background: '#444',
-            color: '#fff',
-            borderRadius: 24,
-            padding: '10px 18px',
-            textDecoration: 'none',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.10)'
-          }}
-        >
-          + Add Gear
-        </Link>
+    <main className={itemStyles.itemMain}>
+      <div className={itemStyles.roomHeader}>
+        <Link href="/rigistry" className={itemStyles.roomBackBtn}>← Back to Rigistry</Link>
+        <Link href="/rigistry/synthzone/add" className={itemStyles.addGearButton}>+ Add Gear</Link>
       </div>
-  <RoomGearList room="synthzone" />
+      <h1 className={itemStyles.roomTitle}>Synthzone</h1>
+      <Image src="/branding/Synthzone.png" alt="Synthzone" width={220} height={220} className={itemStyles.itemImage} />
+      <p className={itemStyles.itemDesc}>Add synths, keys, and electronic gear here.</p>
+      <RoomGearList room="synthzone" />
     </main>
   );
 }

@@ -14,6 +14,19 @@ export default function RoomGearList({ room }: { room: RoomKey }) {
   const { addToast } = useToast();
   const [gear, setGear] = useState<GearDoc[]>([]);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [kindDefaults, setKindDefaults] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch('/brand-defaults-by-kind.json', { cache: 'no-store' });
+        if (res.ok) {
+          const data = await res.json();
+          setKindDefaults(data || {});
+        }
+      } catch {}
+    })();
+  }, []);
 
   useEffect(() => {
     if (!user) return;
@@ -56,7 +69,38 @@ export default function RoomGearList({ room }: { room: RoomKey }) {
             <div className={styles.gearCard} style={{ padding: 12, cursor: 'pointer', minHeight: 220, display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' }}>
               {(() => {
                 const brandLogo = g.brand ? `/api/brand-logo?brand=${encodeURIComponent(g.brand)}` : null;
-                const src = g.imageUrl || brandLogo || '/branding/logo1.png';
+                const roomDefault = (() => {
+                  switch (room) {
+                    case 'guitar-amp': return '/branding/Guitar backdrop.png';
+                    case 'control': return '/branding/Studio gear brand default.png';
+                    case 'drum': return '/branding/Drum gear brand default.png';
+                    case 'synthzone': return '/branding/Keyboard gear brand default.png';
+                    case 'stage': return '/branding/Live gear brand default.png';
+                    case 'dj-booth': return '/branding/DJbooth.png';
+                    case 'orchestral-pit': return '/branding/Orchestra brand default.png';
+                    default: return '/branding/logo1.png';
+                  }
+                })();
+                const kindKey = String((g.kind as string) || '').trim().toLowerCase();
+                const kindDefault = (kindKey && kindDefaults[kindKey]) ? kindDefaults[kindKey] : '';
+                const detailKey = String((g.kindDetail as string) || '').trim().toLowerCase();
+                const detailDefault = detailKey.includes('trumpet') ? (kindDefaults['brass'] || kindDefaults[kindKey] || '') : '';
+                // Prefer kind defaults over brand logos to avoid room default when brand fetch 404s or brand missing
+                const src = g.imageUrl || detailDefault || kindDefault || brandLogo || roomDefault;
+                if (process.env.NODE_ENV !== 'production') {
+                  // Debug fallback selection for troubleshooting
+                  console.debug('RoomGearList image select', {
+                    id: g.id,
+                    kind: g.kind,
+                    kindDetail: g.kindDetail,
+                    picked: src,
+                    imageUrl: g.imageUrl,
+                    brandLogo,
+                    detailDefault,
+                    kindDefault,
+                    roomDefault,
+                  });
+                }
                 return (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
@@ -67,8 +111,10 @@ export default function RoomGearList({ room }: { room: RoomKey }) {
                     style={{ borderRadius: 6, objectFit: 'contain', display: 'block', background: '#444', width: '100%', height: 120 }}
                     onError={(e) => {
                       const img = e.currentTarget as HTMLImageElement;
-                      if (!img.src.endsWith('/branding/logo1.png')) {
-                        img.src = '/branding/logo1.png';
+                      // On error, prefer kind default then room default
+                      const fallback = detailDefault || kindDefault || roomDefault;
+                      if (!img.src.endsWith(fallback)) {
+                        img.src = fallback;
                       }
                     }}
                   />
