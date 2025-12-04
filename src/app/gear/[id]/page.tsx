@@ -953,58 +953,73 @@ function GuitarSetupFields({ gear, notes }: { gear: GearDoc; notes?: string }) {
   }, []);
 
   function autocompleteDate(val: string): string {
-    // Remove non-digits
+    // Support inputs like ddmmyy, ddmmyyyy, and dd/mm/yy|yyyy
+    // Normalize to digits-only first
     let digits = val.replace(/[^\d]/g, '');
-    // Pad to at least 6 digits
-    if (digits.length === 5) digits = '0' + digits;
-    if (digits.length === 3) digits = '0' + digits;
-    // If 4 digits, assume ddmm, add current year
+    // Handle short ddmm -> append current year (yy)
     if (digits.length === 4) {
-      const year = String(new Date().getFullYear()).slice(-2);
-      digits += year;
+      const yearYY = String(new Date().getFullYear()).slice(-2);
+      digits = digits + yearYY;
     }
-    // If 6 or 8 digits, try to parse
+    // Fix odd lengths by left-padding day to two digits
+    if (digits.length === 5) digits = '0' + digits; // d m m y y
+    if (digits.length === 3) digits = '0' + digits; // d m m
+
+    // Parse ddmmyy or ddmmyyyy
     if (digits.length === 6 || digits.length === 8) {
-      let day = parseInt(digits.slice(0, 2), 10);
-      let month = parseInt(digits.slice(2, 4), 10);
-      let year = digits.slice(4);
-      // If day > 31 and month <= 12, swap
-      if (day > 31 && month <= 12) {
+      const d = parseInt(digits.slice(0, 2), 10);
+      const m = parseInt(digits.slice(2, 4), 10);
+      let yStr = digits.slice(4);
+
+      let day = d;
+      let month = m;
+
+      // Only swap when clearly invalid (e.g., month>12 & day<=12)
+      if (month > 12 && day <= 12) {
         [day, month] = [month, day];
       }
-      // If month > 12 and day <= 31, swap
-      if (month > 12 && day <= 31) {
-        [day, month] = [month, day];
-      }
-      // Clamp day/month
+
+      // Clamp day/month to valid ranges
       day = Math.max(1, Math.min(day, 31));
       month = Math.max(1, Math.min(month, 12));
-      // Expand year if needed
-      if (year.length === 2) year = '20' + year;
-      return `${String(day).padStart(2, '0')}${String(month).padStart(2, '0')}${year}`;
+
+      // Expand 2-digit year to 2000+YY
+      if (yStr.length === 2) yStr = '20' + yStr;
+
+      return `${String(day).padStart(2, '0')}${String(month).padStart(2, '0')}${yStr}`;
     }
+    // Fallback: return digits as-is (user still typing)
     return digits;
   }
 
   function formatDateSlashes(val: string): string {
     const digits = val.replace(/[^\d]/g, '');
+    // Render dd/mm/yyyy when we have 8 digits
     if (digits.length === 8) {
-      // ddmmyyyy
-      return `${digits.slice(0,2)}/${digits.slice(2,4)}/${digits.slice(4,8)}`;
+      return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4, 8)}`;
+    }
+    // Render dd/mm/yy when we have 6 digits
+    if (digits.length === 6) {
+      return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4, 6)}`;
     }
     return val;
   }
 
   function validateDate(val: string) {
-    // Accept ddmmyy or ddmmyyyy
-    const re = /^(\d{2})(\d{2})(\d{2,4})$/;
+    // Accept ddmmyy, ddmmyyyy, dd/mm/yy, dd/mm/yyyy
     if (!val) return '';
-    const m = val.match(re);
-    if (!m) return 'Format: ddmmyy';
+    const digits = val.replace(/[^\d]/g, '');
+    const re = /^(\d{2})(\d{2})(\d{2,4})$/;
+    const m = digits.match(re);
+    if (!m) return 'Format: ddmmyy or dd/mm/yy';
     const day = parseInt(m[1], 10);
     const month = parseInt(m[2], 10);
     const year = m[3].length === 2 ? 2000 + parseInt(m[3], 10) : parseInt(m[3], 10);
     if (day < 1 || day > 31 || month < 1 || month > 12 || year < 1900) return 'Invalid date';
+    // Basic month/day max checks (not leap-aware, sufficient for UI)
+    const thirtyDays = [4, 6, 9, 11];
+    if (thirtyDays.includes(month) && day > 30) return 'Invalid date';
+    if (month === 2 && day > 29) return 'Invalid date';
     return '';
   }
 
