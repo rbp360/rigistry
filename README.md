@@ -193,3 +193,11 @@ Instrument list fetch is cached in-memory per session; subsequent queries are fi
 Please keep additions to curated lists concise, canonical, and singular (avoid duplicates differing only by punctuation). When necessary, place synonyms directly in the keyword arrays rather than duplicating curated entries.
 
 ---
+
+## Troubleshooting
+
+### Workspace Root Warning
+If you see a warning about "Next.js inferred your workspace root" or multiple lockfiles during `npm run dev`, we have explicitly set `outputFileTracingRoot` in `next.config.ts` to resolve this.
+
+**Note for Vercel Deployment:**
+If deployments to Vercel fail with path resolution errors, try commenting out `outputFileTracingRoot` in `next.config.ts`. It is primarily enabled to silence local development warnings.

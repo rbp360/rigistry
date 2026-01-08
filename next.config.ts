@@ -1,11 +1,11 @@
 import type { NextConfig } from "next";
-// import path from 'path';
+import path from 'path';
 
 const nextConfig: NextConfig = {
   reactCompiler: true,
   reactStrictMode: true,
   // Let Vercel handle output file tracing root; overriding can break path resolution in CI
-  // outputFileTracingRoot: path.join(__dirname, '..'),
+  outputFileTracingRoot: path.join(__dirname, '..'),
   async redirects() {
     return [
       {
