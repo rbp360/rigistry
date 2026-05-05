@@ -66,6 +66,57 @@ function InnerAddPage() {
     }
     setSaving(true);
     try {
+      let imageUrl = form.imageUrl || undefined;
+      let catalogSource = form.catalogSource || undefined;
+      // If no imageUrl, try to fetch or fallback
+      if (!imageUrl) {
+        if (form.brand && form.model) {
+          const result = await fetchStockImageForBrandModel(form.brand, form.model, form.color, 0);
+          if (result.url) {
+            imageUrl = result.url;
+            catalogSource = {
+              source: 'reverb',
+              attribution: result.attribution ?? 'Stock image from Reverb.com',
+              licenseNote: 'Display-only stock image; not for redistribution.'
+            };
+          }
+        }
+        if (!imageUrl && form.brand) {
+          imageUrl = `/api/brand-logo?brand=${encodeURIComponent(form.brand)}`;
+          catalogSource = {
+            source: 'guitar-list',
+            attribution: 'Logo from guitar-list.com',
+            licenseNote: 'Logo used with permission via guitar-list.com; display-only.'
+          };
+        }
+        if (!imageUrl) {
+          // Fallback to kind default
+          try {
+            const res = await fetch('/brand-defaults-by-kind.json', { cache: 'no-store' });
+            if (res.ok) {
+              const map = await res.json();
+              const kindKey = String(form.kind || '').trim().toLowerCase();
+              const detailKey = String(form.kindDetail || '').trim().toLowerCase();
+              const detailDefault = detailKey.includes('trumpet') ? map['brass'] : undefined;
+              imageUrl = detailDefault || map[kindKey] || '/branding/Studio gear brand default.png';
+              catalogSource = { source: 'logo-dev', attribution: 'Kind default placeholder', licenseNote: 'Internal placeholder asset.' };
+            }
+          } catch {
+            // Fallback to static
+            const k = (form.kind || '').toLowerCase();
+            let fb = '/branding/Studio gear brand default.png';
+            if (k.includes('bass')) fb = '/branding/Bass gear brand default.png';
+            else if (k.includes('drum')) fb = '/branding/Drum gear brand default.png';
+            else if (k.includes('keyboard') || k.includes('synth') || k.includes('piano')) fb = '/branding/Keyboard gear brand default.png';
+            else if (k.includes('live') || k.includes('stage') || k.includes('dj')) fb = '/branding/Live gear brand default.png';
+            else if (k.includes('orchestra') || k.includes('orchestral')) fb = '/branding/Orchestra brand default.png';
+            else if (k.includes('control') || k.includes('studio')) fb = '/branding/Studio gear brand default.png';
+            else if (k.includes('guitar')) fb = '/branding/Bass gear brand default.png';
+            imageUrl = fb;
+            catalogSource = { source: 'logo-dev', attribution: 'Local default placeholder', licenseNote: 'Internal placeholder asset.' };
+          }
+        }
+      }
       const saved = await createGearItem({
         ownerId: user.uid,
         kind: form.kind as GearKind,
@@ -75,11 +126,11 @@ function InnerAddPage() {
         serialNumber: form.serialNumber?.trim() || undefined,
         color: form.color?.trim() || undefined,
         notes: form.notes?.trim() || undefined,
-        imageUrl: form.imageUrl || undefined,
+        imageUrl,
+        catalogSource,
         room: form.room,
       });
       if (saved) {
-        // Navigate directly to the item's home page instead of showing a success message
         router.replace(`/gear/${saved.id}`);
         return;
       }

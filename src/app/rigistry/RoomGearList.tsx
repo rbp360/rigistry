@@ -62,13 +62,13 @@ export default function RoomGearList({ room }: { room: RoomKey }) {
   if (gear.length === 0) return <p>No gear in this room yet.</p>;
 
   return (
-    <div style={{ marginTop: 32, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 18 }}>
+    <div className={styles.gearGrid}>
       {gear.map(g => (
-        <div key={g.id} style={{ position: 'relative' }}>
+        <div key={g.id} className={styles.gearTile}>
           <a href={`/gear/${g.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
-            <div className={styles.gearCard} style={{ padding: 12, cursor: 'pointer', minHeight: 220, display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' }}>
+            <div className={styles.gearCard} style={{ padding: 12, cursor: 'pointer' }}>
               {(() => {
-                const brandLogo = g.brand ? `/api/brand-logo?brand=${encodeURIComponent(g.brand)}` : null;
+                // Remove brandLogo from fallback chain; only use saved imageUrl or static defaults
                 const roomDefault = (() => {
                   switch (room) {
                     case 'guitar-amp': return '/branding/Guitar backdrop.png';
@@ -85,8 +85,8 @@ export default function RoomGearList({ room }: { room: RoomKey }) {
                 const kindDefault = (kindKey && kindDefaults[kindKey]) ? kindDefaults[kindKey] : '';
                 const detailKey = String((g.kindDetail as string) || '').trim().toLowerCase();
                 const detailDefault = detailKey.includes('trumpet') ? (kindDefaults['brass'] || kindDefaults[kindKey] || '') : '';
-                // Prefer kind defaults over brand logos to avoid room default when brand fetch 404s or brand missing
-                const src = g.imageUrl || detailDefault || kindDefault || brandLogo || roomDefault;
+                // Only use saved imageUrl or static defaults
+                const src = g.imageUrl || detailDefault || kindDefault || roomDefault;
                 if (process.env.NODE_ENV !== 'production') {
                   // Debug fallback selection for troubleshooting
                   console.debug('RoomGearList image select', {
@@ -95,7 +95,6 @@ export default function RoomGearList({ room }: { room: RoomKey }) {
                     kindDetail: g.kindDetail,
                     picked: src,
                     imageUrl: g.imageUrl,
-                    brandLogo,
                     detailDefault,
                     kindDefault,
                     roomDefault,
@@ -104,11 +103,11 @@ export default function RoomGearList({ room }: { room: RoomKey }) {
                 return (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
+                    className={styles.gearCardImage}
                     src={src}
                     alt={g.brand || 'Gear'}
-                    width={120}
-                    height={120}
-                    style={{ borderRadius: 6, objectFit: 'contain', display: 'block', background: '#444', width: '100%', height: 120 }}
+                    width={144}
+                    height={82}
                     onError={(e) => {
                       const img = e.currentTarget as HTMLImageElement;
                       // On error, prefer kind default then room default
@@ -120,15 +119,15 @@ export default function RoomGearList({ room }: { room: RoomKey }) {
                   />
                 );
               })()}
-              <div style={{ marginTop: 8 }}>
-                <div style={{ fontWeight: 700, color: '#22c55e' }}>
+              <div className={styles.gearCardText}>
+                <div className={styles.gearCardTitle}>
                   {g.nickname && <span>{g.nickname}</span>}
                   {g.serialNumber && <span>{g.nickname ? ' — ' : ''}{g.serialNumber}</span>}
                 </div>
-                <div style={{ fontWeight: 700 }}>
+                <div className={styles.gearCardModel}>
                   {g.brand || 'Unknown'} {g.model || ''}
                 </div>
-                <div style={{ fontSize: 13, opacity: 0.7 }}>{g.kind}</div>
+                <div className={styles.gearCardKind}>{g.kind}</div>
                 {/* Notes removed from room listing to hide snapshot markers */}
               </div>
             </div>
